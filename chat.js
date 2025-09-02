@@ -194,13 +194,27 @@ async function submitRequest() {
   const data = {
     model: selectedModel,
     prompt: enhancedPrompt,
-    context: removeBetween(context, 151648, 151649),
     system: systemPrompt
   };
 
-  // Add images if any
+  // Handle context carefully when switching between image and non-image messages
+  const cleanedContext = removeBetween(context, 151648, 151649);
+  
+  // Add images if any and track for next message
   if (imageAttachments.length > 0) {
     data.images = imageAttachments;
+    lastMessageHadImages = true;
+    // Include context when sending images
+    if (cleanedContext && cleanedContext.length > 0) {
+      data.context = cleanedContext;
+    }
+  } else {
+    // If last message had images but this one doesn't, skip context
+    // to avoid "invalid image index" errors
+    if (!lastMessageHadImages && cleanedContext && cleanedContext.length > 0) {
+      data.context = cleanedContext;
+    }
+    lastMessageHadImages = false;
   }
 
   // Create user message element and append to chat history
@@ -356,6 +370,7 @@ document.getElementById('user-input').addEventListener('keydown', function (e) {
 
 // File attachment handling
 let attachedFiles = [];
+let lastMessageHadImages = false;
 
 function initializeFileHandlers() {
   const fileInput = document.getElementById('file-input');
