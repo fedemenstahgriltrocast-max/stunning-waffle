@@ -2,7 +2,8 @@
 <html>
 
 <head>
-    <title>Chat with Llama2</title>
+    <meta charset="UTF-8">
+    <title>Chat with Ollama</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
     <link href="resources/bootstrap.min.css" rel="stylesheet"
@@ -69,10 +70,17 @@
 
 
     <div class="container p-2 card" id="input-area">
+        <div id="file-attachment-area" style="display: none;">
+            <div class="d-flex flex-wrap align-items-center" id="file-previews">
+                <!-- File previews will be added here dynamically -->
+            </div>
+        </div>
         <div class="input-group">
-                <textarea class="form-control" id="user-input" placeholder="Type your question here..." oninput="autoGrow(this)"></textarea>
+            <textarea class="form-control" id="user-input" placeholder="Type your question here..." oninput="autoGrow(this)"></textarea>
+            <button id="file-attach-button" class="btn btn-outline-secondary" type="button" title="Attach files">📎</button>
             <button id="send-button" class="btn btn-primary">Send</button>
         </div>
+        <input type="file" id="file-input" multiple style="display: none;">
     </div>
 
 <!-- Modal -->

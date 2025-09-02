@@ -80,11 +80,17 @@ async function populateModels() {
     }
   }
   catch (error) {
-    document.getElementById('errorText').innerHTML =
-    DOMPurify.sanitize(marked.parse(
+    const errorText = document.getElementById('errorText');
+    errorText.textContent = ''; // Clear existing content
+    const errorContent = DOMPurify.sanitize(marked.parse(
     `Ollama-ui was unable to communitcate with Ollama due to the following error:\n\n`
     + `\`\`\`${error.message}\`\`\`\n\n---------------------\n`
     + faqString));
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = errorContent;
+    while (tempDiv.firstChild) {
+      errorText.appendChild(tempDiv.firstChild);
+    }
     let modal = new bootstrap.Modal(document.getElementById('errorModal'));
     modal.show();
   }
@@ -154,11 +160,11 @@ function removeBetween(arr, startVal, endVal) {
   }
   const startIndex = arr.indexOf(startVal);
   const endIndex = arr.indexOf(endVal);
-  
+
   if (startIndex === -1 || endIndex === -1 || startIndex >= endIndex) {
-    return arr; 
+    return arr;
   }
-  
+
   arr.splice(startIndex, endIndex - startIndex + 1);
   return arr;
 }
@@ -171,13 +177,82 @@ async function submitRequest() {
   const selectedModel = getSelectedModel();
   const context = document.getElementById('chat-history').context;
   const systemPrompt = document.getElementById('system-prompt').value;
-  const data = { model: selectedModel, prompt: input, context: removeBetween(context, 151648, 151649), system: systemPrompt };
+
+  // Prepare prompt with file contents for non-image files
+  let enhancedPrompt = input;
+  const imageAttachments = [];
+
+  for (const file of attachedFiles) {
+    if (file.isImage) {
+      imageAttachments.push(file.base64);
+    } else {
+      // Append text file contents to the prompt
+      enhancedPrompt += `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`;
+    }
+  }
+
+  const data = {
+    model: selectedModel,
+    prompt: enhancedPrompt,
+    context: removeBetween(context, 151648, 151649),
+    system: systemPrompt
+  };
+
+  // Add images if any
+  if (imageAttachments.length > 0) {
+    data.images = imageAttachments;
+  }
 
   // Create user message element and append to chat history
   let chatHistory = document.getElementById('chat-history');
   let userMessageDiv = document.createElement('div');
   userMessageDiv.className = 'mb-2 user-message';
-  userMessageDiv.innerText = input;
+
+  // Add the text content
+  const textDiv = document.createElement('div');
+  textDiv.textContent = input;
+  userMessageDiv.appendChild(textDiv);
+
+  // Add attached images and files to user message
+  if (attachedFiles.length > 0) {
+    const attachmentsContainer = document.createElement('div');
+    attachmentsContainer.className = 'message-attachments';
+
+    // Separate images and other files
+    const images = attachedFiles.filter(f => f.isImage);
+    const otherFiles = attachedFiles.filter(f => !f.isImage);
+
+    // Display images
+    if (images.length > 0) {
+      const imagesDiv = document.createElement('div');
+      imagesDiv.className = 'message-images';
+      images.forEach(file => {
+        const img = document.createElement('img');
+        img.src = `data:${file.type};base64,${file.base64}`;
+        img.alt = file.name;
+        img.className = 'message-image';
+        img.title = file.name;
+        imagesDiv.appendChild(img);
+      });
+      attachmentsContainer.appendChild(imagesDiv);
+    }
+
+    // Display other file indicators
+    if (otherFiles.length > 0) {
+      const filesDiv = document.createElement('div');
+      filesDiv.className = 'message-files';
+      otherFiles.forEach(file => {
+        const fileIndicator = document.createElement('div');
+        fileIndicator.className = 'file-indicator';
+        fileIndicator.textContent = `📄 ${file.name}`;
+        filesDiv.appendChild(fileIndicator);
+      });
+      attachmentsContainer.appendChild(filesDiv);
+    }
+
+    userMessageDiv.appendChild(attachmentsContainer);
+  }
+
   chatHistory.appendChild(userMessageDiv);
 
   // Create response container
@@ -194,7 +269,7 @@ async function submitRequest() {
   let interrupt = new AbortController();
   let stopButton = document.createElement('button');
   stopButton.className = 'btn btn-danger';
-  stopButton.innerHTML = 'Stop';
+  stopButton.textContent = 'Stop';
   stopButton.onclick = (e) => {
     e.preventDefault();
     interrupt.abort('Stop button pressed');
@@ -215,7 +290,10 @@ async function submitRequest() {
           // Copy button
           let copyButton = document.createElement('button');
           copyButton.className = 'btn btn-secondary copy-button';
-          copyButton.innerHTML = clipboardIcon;
+          // Use a temporary div to parse the SVG string
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = clipboardIcon;
+          copyButton.appendChild(tempDiv.firstChild);
           copyButton.onclick = () => {
             navigator.clipboard.writeText(responseDiv.hidden_text).then(() => {
               console.log('Text copied to clipboard');
@@ -232,7 +310,20 @@ async function submitRequest() {
           }
           word = word.replace(/<think>/g, '<details open><summary>think content</summary><br><span style="color:gray;">').replace(/<\/think>/g, '</span><hr></details>');
           responseDiv.hidden_text += word;
-          responseDiv.innerHTML = DOMPurify.sanitize(marked.parse(responseDiv.hidden_text)); // Append word to response container
+          // Clear and update response content safely
+          const sanitizedContent = DOMPurify.sanitize(marked.parse(responseDiv.hidden_text));
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = sanitizedContent;
+          // Clear existing content except spinner and stop button
+          while (responseDiv.firstChild &&
+                 responseDiv.firstChild !== spinner &&
+                 !responseDiv.firstChild.classList?.contains('copy-button')) {
+            responseDiv.removeChild(responseDiv.firstChild);
+          }
+          // Append new content
+          while (tempDiv.firstChild) {
+            responseDiv.insertBefore(tempDiv.firstChild, spinner || responseDiv.firstChild);
+          }
         }
       });
     })
@@ -248,10 +339,11 @@ async function submitRequest() {
       spinner.remove();
     });
 
-  // Clear user input
+  // Clear user input and attachments
   const element = document.getElementById('user-input');
   element.value = '';
   $(element).css("height", textBoxBaseHeight + "px");
+  clearAttachments();
 }
 
 // Event listener for Ctrl + Enter or CMD + Enter
@@ -262,11 +354,159 @@ document.getElementById('user-input').addEventListener('keydown', function (e) {
 });
 
 
+// File attachment handling
+let attachedFiles = [];
+
+function initializeFileHandlers() {
+  const fileInput = document.getElementById('file-input');
+  const fileAttachButton = document.getElementById('file-attach-button');
+
+  fileAttachButton.addEventListener('click', () => {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', handleFileSelection);
+
+  // Add drag and drop support
+  const inputArea = document.getElementById('input-area');
+  inputArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    inputArea.classList.add('drag-over');
+  });
+
+  inputArea.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    inputArea.classList.remove('drag-over');
+  });
+
+  inputArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    inputArea.classList.remove('drag-over');
+    handleDroppedFiles(e.dataTransfer.files);
+  });
+}
+
+async function handleFileSelection(event) {
+  const files = event.target.files;
+  await processFiles(files);
+  event.target.value = ''; // Reset input
+}
+
+async function handleDroppedFiles(files) {
+  await processFiles(files);
+}
+
+async function processFiles(files) {
+  const maxFileSize = 10 * 1024 * 1024; // 10MB limit
+
+  for (const file of files) {
+    if (file.size > maxFileSize) {
+      alert(`File "${file.name}" is too large. Maximum size is 10MB.`);
+      continue;
+    }
+
+    // Check if file is an image
+    if (file.type.startsWith('image/')) {
+      const base64 = await fileToBase64(file);
+      attachedFiles.push({
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        base64: base64.split(',')[1], // Remove data URL prefix
+        isImage: true
+      });
+    } else {
+      // For non-image files, read as text
+      const text = await fileToText(file);
+      attachedFiles.push({
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        content: text,
+        isImage: false
+      });
+    }
+  }
+
+  updateFilePreview();
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function fileToText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsText(file);
+  });
+}
+
+function updateFilePreview() {
+  const filePreviewsContainer = document.getElementById('file-previews');
+  const fileAttachmentArea = document.getElementById('file-attachment-area');
+
+  // Clear container safely
+  while (filePreviewsContainer.firstChild) {
+    filePreviewsContainer.removeChild(filePreviewsContainer.firstChild);
+  }
+
+  if (attachedFiles.length === 0) {
+    fileAttachmentArea.style.display = 'none';
+    return;
+  }
+
+  fileAttachmentArea.style.display = 'block';
+
+  attachedFiles.forEach((file, index) => {
+    const previewDiv = document.createElement('div');
+    previewDiv.className = 'file-preview';
+
+    if (file.isImage) {
+      const img = document.createElement('img');
+      img.src = `data:${file.type};base64,${file.base64}`;
+      img.alt = file.name;
+      previewDiv.appendChild(img);
+    } else {
+      const fileIcon = document.createElement('div');
+      fileIcon.className = 'file-icon';
+      fileIcon.textContent = `📄 ${file.name}`;
+      previewDiv.appendChild(fileIcon);
+    }
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-file';
+    removeBtn.textContent = '×';
+    removeBtn.onclick = () => removeFile(index);
+    previewDiv.appendChild(removeBtn);
+
+    filePreviewsContainer.appendChild(previewDiv);
+  });
+}
+
+function removeFile(index) {
+  attachedFiles.splice(index, 1);
+  updateFilePreview();
+}
+
+function clearAttachments() {
+  attachedFiles = [];
+  updateFilePreview();
+}
+
 window.onload = () => {
   updateChatList();
   populateModels();
   adjustPadding();
   autoFocusInput();
+  initializeFileHandlers();
 
   document.getElementById("delete-chat").addEventListener("click", deleteChat);
   document.getElementById("new-chat").addEventListener("click", startNewChat);
@@ -291,11 +531,20 @@ function saveChat() {
   bootstrapModal.hide();
 
   if (chatName === null || chatName.trim() === "") return;
-  const history = document.getElementById("chat-history").innerHTML;
-  const context = document.getElementById('chat-history').context;
+  // Store chat messages as structured data instead of HTML
+  const chatHistoryEl = document.getElementById("chat-history");
+  const messages = [];
+  for (const child of chatHistoryEl.children) {
+    messages.push({
+      className: child.className,
+      textContent: child.textContent,
+      isUser: child.classList.contains('user-message')
+    });
+  }
+  const context = chatHistoryEl.context;
   const systemPrompt = document.getElementById('system-prompt').value;
   const model = getSelectedModel();
-  localStorage.setItem(chatName, JSON.stringify({"history":history, "context":context, system: systemPrompt, "model": model}));
+  localStorage.setItem(chatName, JSON.stringify({"messages":messages, "context":context, system: systemPrompt, "model": model}));
   updateChatList();
 }
 
@@ -303,16 +552,44 @@ function saveChat() {
 function loadSelectedChat() {
   const selectedChat = document.getElementById("chat-select").value;
   const obj = JSON.parse(localStorage.getItem(selectedChat));
-  document.getElementById("chat-history").innerHTML = obj.history;
-  document.getElementById("chat-history").context = obj.context;
+  const chatHistory = document.getElementById("chat-history");
+
+  // Clear existing chat history
+  while (chatHistory.firstChild) {
+    chatHistory.removeChild(chatHistory.firstChild);
+  }
+
+  // Handle both old format (history) and new format (messages)
+  if (obj.history) {
+    // Legacy format - use innerHTML one last time for backward compatibility
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = obj.history;
+    while (tempDiv.firstChild) {
+      chatHistory.appendChild(tempDiv.firstChild);
+    }
+  } else if (obj.messages) {
+    // New format - recreate messages from structured data
+    obj.messages.forEach(msg => {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = msg.className;
+      messageDiv.textContent = msg.textContent;
+      chatHistory.appendChild(messageDiv);
+    });
+  }
+
+  chatHistory.context = obj.context;
   document.getElementById("system-prompt").value = obj.system;
   updateModelInQueryString(obj.model)
   document.getElementById('chat-container').style.display = 'block';
 }
 
 function startNewChat() {
-    document.getElementById("chat-history").innerHTML = null;
-    document.getElementById("chat-history").context = null;
+    const chatHistory = document.getElementById("chat-history");
+    // Clear chat history safely
+    while (chatHistory.firstChild) {
+      chatHistory.removeChild(chatHistory.firstChild);
+    }
+    chatHistory.context = null;
     document.getElementById('chat-container').style.display = 'none';
     updateChatList();
 }
@@ -320,7 +597,17 @@ function startNewChat() {
 // Function to update chat list dropdown
 function updateChatList() {
   const chatList = document.getElementById("chat-select");
-  chatList.innerHTML = '<option value="" disabled selected>Select a chat</option>';
+  // Clear existing options
+  while (chatList.firstChild) {
+    chatList.removeChild(chatList.firstChild);
+  }
+  // Add default option
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.disabled = true;
+  defaultOption.selected = true;
+  defaultOption.textContent = 'Select a chat';
+  chatList.appendChild(defaultOption);
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key === "host-address" || key == "system-prompt") continue;
