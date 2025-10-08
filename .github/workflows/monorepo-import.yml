@@ -1,6 +1,6 @@
 import repos fom ame account onto one master repo
 
-name: Import public repos into monorepo (subtree)
+name: Import each repo via subtree (public)
 
 on:
   workflow_dispatch: {}
