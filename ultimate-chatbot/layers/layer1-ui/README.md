@@ -20,14 +20,19 @@ interact with the orchestrator through the Layer 1 EdgeMesh Worker.
    `HMAC_SECRET` value.
 4. Document UI routes in `openapi.yaml` (create in this directory).
 
-## Embed Widget
+## Embed Widget & Multi-Tenant Controls
 - The Worker serves `/embed.js`, a drop-in script that renders a floating chat
   UI inside any host page.
 - Configure allowed origins via the `UI_ALLOWED_ORIGINS` environment variable
-  (comma-separated list, or `*` for trusted broad access).
+  (comma-separated list, or `*` for trusted broad access). Pair this with a KV
+  table that maps origin → tenant ID to enable per-customer routing.
 - Mount automatically with a `<div data-ultimate-chatbot></div>` placeholder, or
   call `window.UltimateChatEmbed.mount(element, options)` manually to customize
   theme, endpoint, or welcome message.
+- Enforce document prerequisites by checking the tenant record before
+  establishing a session. If required PDFs have not been uploaded and approved,
+  return a descriptive error so the host site can prompt the customer to supply
+  content.
 
 ## Handoffs
 - Requests that pass verification call the Layer 6 orchestrator.

@@ -143,6 +143,32 @@ placeholder text, welcome message, and target endpoint. For manual control you
 can call `window.UltimateChatEmbed.mount(element, { endpoint, title })` after
 loading the script.
 
+## Multi-tenant Worker Mesh Strategy
+- **Worker-only Footprint** – Each layer can run exclusively as a Cloudflare
+  Worker or Durable Object, so you can host the full seven-layer stack without
+  provisioning additional VMs or managed services. `wrangler.toml` already
+  scopes every layer to its own Worker service; clone those environments for
+  production, staging, and per-customer sandboxes.
+- **Tenant Routing** – Store tenant metadata (allowed domains, feature flags,
+  rate limits) in D1 or KV. The Layer 1 Worker reads the tenant record based on
+  the embedding’s origin or API key, stamps it into the signed envelope, and
+  Layer 6 uses it to select the correct downstream bindings (Tiny ML models,
+  MCP connectors, logging buckets).
+- **Customer PDF Requirement** – Configure Layer 1 to block conversation
+  initialization until a tenant-specific document inventory exists. You can
+  enforce this by checking R2/Object storage for uploaded PDFs or hybrid-search
+  indexes in Layer 4 before allowing `/chat` calls. If no documents are present,
+  return a signed error prompting the customer to upload source material.
+- **Secure Upload Flow** – Provide short-lived signed upload URLs from Layer 7.
+  Uploaded artifacts trigger Layer 3 scanning and Layer 4/Layers Vectorize
+  indexing. Only after all checks succeed does Layer 6 mark the tenant as
+  `ready` in KV, unlocking the chatbot for that site.
+- **Scale to Many Websites** – The embeddable widget simply points to the Layer
+  1 Worker. As long as the requesting domain is registered, the Worker issues a
+  per-tenant session token, applies CORS from `UI_ALLOWED_ORIGINS`, and fans out
+  requests through the mesh. This design lets dozens of external websites share
+  the same Worker mesh while keeping data partitioned by tenant identifiers.
+
 ## Next Steps
 1. Approve the directory structure and blueprint.
 2. Generate Worker templates for each layer (TypeScript/JavaScript or Rust).
