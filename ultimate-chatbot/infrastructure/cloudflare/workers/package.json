@@ -1,0 +1,14 @@
+{
+  "name": "ultimate-chatbot-workers",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "lint": "tsc --noEmit",
+    "build": "wrangler deploy --dry-run"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240605.0",
+    "typescript": "^5.4.5",
+    "wrangler": "^3.61.0"
+  }
+}
