@@ -13,9 +13,9 @@ type MlPayload = {
 };
 
 const DEMO_DOCUMENTS: Document[] = [
-  { id: "doc-1", content: "Cloudflare Workers enable secure edge compute" },
+  { id: "doc-1", content: "EdgeMesh Workers enable secure edge compute" },
   { id: "doc-2", content: "TinyML pipelines score intents locally" },
-  { id: "doc-3", content: "Thorium integrates CISA compliant scanning" },
+  { id: "doc-3", content: "Deep analysis meshes integrate compliant scanning" },
 ];
 
 export default {

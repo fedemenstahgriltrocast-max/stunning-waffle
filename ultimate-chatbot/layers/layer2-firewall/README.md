@@ -5,14 +5,14 @@ traffic reaches sensitive layers.
 
 ## Responsibilities
 - Validate HMAC signatures on inbound requests from Layer 1.
-- Apply heuristic/policy engines (Llama Guard, Prompt Guard, custom rules).
+- Apply heuristic/policy engines (policy guards, prompt filters, custom rules).
 - Sign downstream requests to the orchestrator after successful evaluation.
 - Emit analytics events for Zero Trust dashboards and SIEM ingestion.
 
 ## Setup Checklist
-1. Deploy the Worker in `infrastructure/cloudflare/workers/layer2-firewall`.
+1. Deploy the Worker in `infrastructure/edge-mesh/workers/layer2-firewall`.
 2. Bind the shared `HMAC_SECRET` and a service binding to Layer 6.
-3. Integrate Purple Llama guardrails or your preferred policy engine.
+3. Integrate your preferred guardrail engine for policy enforcement.
 4. Document `/verify` and `/forward` endpoints via `openapi.yaml`.
 
 ## Handoffs

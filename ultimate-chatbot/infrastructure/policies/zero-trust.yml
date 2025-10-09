@@ -1,4 +1,4 @@
-# Cloudflare Zero Trust baseline policy
+# EdgeMesh Zero Trust baseline policy
 # Map each layer to device posture, identity group, and logging requirements.
 
 layers:

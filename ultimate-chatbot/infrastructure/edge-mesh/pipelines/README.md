@@ -28,15 +28,15 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: ultimate-chatbot/infrastructure/cloudflare/workers/package.json
+          cache-dependency-path: ultimate-chatbot/infrastructure/edge-mesh/workers/package.json
       - run: npm install
-        working-directory: ultimate-chatbot/infrastructure/cloudflare/workers
+        working-directory: ultimate-chatbot/infrastructure/edge-mesh/workers
       - run: npm run lint
-        working-directory: ultimate-chatbot/infrastructure/cloudflare/workers
+        working-directory: ultimate-chatbot/infrastructure/edge-mesh/workers
       - run: npm run build -- --env ${{ inputs.layer }}
-        working-directory: ultimate-chatbot/infrastructure/cloudflare/workers
+        working-directory: ultimate-chatbot/infrastructure/edge-mesh/workers
       - run: npx wrangler deploy --env ${{ inputs.layer }}
         env:
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          EDGEMESH_API_TOKEN: ${{ secrets.EDGEMESH_API_TOKEN }}
+          EDGEMESH_ACCOUNT_ID: ${{ secrets.EDGEMESH_ACCOUNT_ID }}
 ```

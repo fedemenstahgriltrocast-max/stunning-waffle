@@ -24,12 +24,12 @@ export default {
     const { payload, sessionId } = verification.data;
     const taskId = crypto.randomUUID();
 
-    // Placeholder for queuing a Thorium scan job
+    // Placeholder for queuing a deep-analysis scan job
     const accepted = {
       taskId,
       sessionId,
       disposition: "queued",
-      instructions: "Connect to Thorium cluster via Cloudflare Tunnel and enqueue scan.",
+      instructions: "Connect to the deep-analysis cluster via private tunnel and enqueue scan.",
       received: payload,
     };
 

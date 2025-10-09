@@ -1,6 +1,6 @@
-# Cloudflare Worker Implementation Guide
+# EdgeMesh Worker Implementation Guide
 
-This package houses the TypeScript entrypoints for every Cloudflare Worker that
+This package houses the TypeScript entrypoints for every EdgeMesh Worker that
 powers the seven-layer chatbot. The goal is to keep a consistent security model
 and toolchain across layers while allowing each Worker to be deployed
 independently.
@@ -36,35 +36,35 @@ minutes of issuance to guard against replay attacks and tampering.
   formatting.
 - `withCors(response, origin)` – applies strict CORS headers for UI traffic.
 
-Bind the shared `HMAC_SECRET` environment variable in `wrangler.toml` or secret
-manager before deploying. Rotate the secret via Zero Trust Access and redeploy
-Workers to propagate updates.
+Bind the shared `HMAC_SECRET` environment variable in `wrangler.toml` or your
+secret manager before deploying. Rotate the secret via your access gateway and
+redeploy Workers to propagate updates.
 
 ## Layer Bindings Overview
 
 | Worker | Required Bindings | Optional Bindings |
 | ------ | ----------------- | ----------------- |
-| layer1-ui | `SESSION_KV`, `HMAC_SECRET`, service binding to `layer2-firewall`, `layer6-orchestrator` | None |
+| layer1-ui | `SESSION_KV`, `HMAC_SECRET`, service binding to `layer2-firewall`, `layer6-orchestrator` | `UI_ALLOWED_ORIGINS` (CSV) |
 | layer2-firewall | `HMAC_SECRET` | service binding to `layer6-orchestrator` |
-| layer3-thorium | `HMAC_SECRET` | Durable Object / Queue bindings for Thorium jobs |
+| layer3-thorium | `HMAC_SECRET` | Durable Object / Queue bindings for deep-analysis jobs |
 | layer4-tiny-ml | `HMAC_SECRET` | `VECTORIZE_INDEX` (Workers Vectorize service) |
 | layer5-tiny-llm | `HMAC_SECRET`, upstream URL + API key secrets | None |
 | layer6-orchestrator | `HMAC_SECRET` | service bindings to layers 3–5 and 7 |
-| layer7-backbone | `HMAC_SECRET` | `AUDIT_BUCKET` (R2), outbound MCP connectors |
+| layer7-backbone | `HMAC_SECRET` | `AUDIT_BUCKET` (object storage), outbound MCP connectors |
 
 Configure these bindings per environment using the `[env.*]` sections in the
-root `wrangler.toml`. Service bindings keep traffic on Cloudflare's private
+root `wrangler.toml`. Service bindings keep traffic on the private EdgeMesh
 network instead of the public internet.
 
 ## Compliance Checklist
 
 - **mTLS or Signed Requests** – already enforced via the shared HMAC signature.
-- **Audit Logging** – Layer 7 stores signed envelopes in R2. Connect R2 to your
+- **Audit Logging** – Layer 7 stores signed envelopes in object storage. Connect it to your
   SIEM for long-term retention (PCI DSS Req. 10).
-- **Rate Limiting** – Add Rulesets in Cloudflare Dashboard or integrate Durable
+- **Rate Limiting** – Add perimeter rulesets or integrate Durable
   Objects for fine-grained throttling per session.
 - **Secrets Management** – Inject API keys through `wrangler secret put` and
-  Cloudflare Zero Trust service tokens rather than committing them to the repo.
+  service tokens from your Zero Trust perimeter rather than committing them to the repo.
 
 With these patterns in place, you can flesh out each Worker with production
 logic while maintaining secure, observable communication between layers.
