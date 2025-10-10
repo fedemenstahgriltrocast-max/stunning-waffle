@@ -87,31 +87,7 @@
     return String(result);
   }
 
-  function mount(element, options = {}) {
-    if (!element) return null;
-
-    const config = {
-      endpoint: normalizeEndpoint(element, options),
-      title: normalize(element, "title", options, "Assistant"),
-      accent: normalize(element, "accent", options, "#2563eb"),
-      placeholder: normalize(element, "placeholder", options, "Ask me anything…"),
-      welcome: normalize(element, "welcome", options, "How can I support you today?"),
-      sendLabel: normalize(element, "send-label", options, "Send"),
-      storageKey: normalize(element, "storage-key", options, null),
-    };
-
-    const persistedState = readPersistedState(config.storageKey) || {};
-
-    const state = {
-      sessionId: options.sessionId || persistedState.sessionId || null,
-      busy: false,
-      typingBubble: null,
-      messages: Array.isArray(persistedState.messages) ? [...persistedState.messages] : [],
-    };
-
-    element.innerHTML = "";
-    element.classList.add("chattia-shell");
-
+  function createCosmeticLayer(shell, accent) {
     const style = document.createElement("style");
     style.textContent = `
       .chattia-shell { --chattia-accent: #2563eb; --chattia-header-bg: rgba(37,99,235,0.12); --chattia-focus-ring: rgba(37,99,235,0.18); --chattia-glow: rgba(37,99,235,0.45); --chattia-button-hover: rgba(37,99,235,0.35); font-family: "Inter", "Segoe UI", system-ui, sans-serif; border-radius: 20px; overflow: hidden; box-shadow: 0 18px 44px rgba(15,23,42,0.16); background: linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(243,246,255,0.97) 100%); color: #0f172a; display: flex; flex-direction: column; max-width: 420px; min-width: 320px; }
@@ -143,40 +119,91 @@
         .chattia-shell__bubble--typing span { animation: none; opacity: 0.4; }
       }
     `;
-    element.appendChild(style);
+    shell.appendChild(style);
 
-    const accentTokens = {
-      header: colorWithAlpha(config.accent, 0.12, "rgba(37,99,235,0.12)"),
-      focus: colorWithAlpha(config.accent, 0.18, "rgba(37,99,235,0.18)"),
-      glow: colorWithAlpha(config.accent, 0.45, "rgba(37,99,235,0.45)"),
-      hover: colorWithAlpha(config.accent, 0.35, "rgba(37,99,235,0.35)"),
+    function applyAccent(nextAccent, tokens) {
+      shell.style.setProperty("--chattia-accent", nextAccent);
+      shell.style.setProperty("--chattia-header-bg", tokens.header);
+      shell.style.setProperty("--chattia-focus-ring", tokens.focus);
+      shell.style.setProperty("--chattia-glow", tokens.glow);
+      shell.style.setProperty("--chattia-button-hover", tokens.hover);
+    }
+
+    let currentTokens = {
+      header: colorWithAlpha(accent, 0.12, "rgba(37,99,235,0.12)"),
+      focus: colorWithAlpha(accent, 0.18, "rgba(37,99,235,0.18)"),
+      glow: colorWithAlpha(accent, 0.45, "rgba(37,99,235,0.45)"),
+      hover: colorWithAlpha(accent, 0.35, "rgba(37,99,235,0.35)"),
     };
-    element.style.setProperty("--chattia-accent", config.accent);
-    element.style.setProperty("--chattia-header-bg", accentTokens.header);
-    element.style.setProperty("--chattia-focus-ring", accentTokens.focus);
-    element.style.setProperty("--chattia-glow", accentTokens.glow);
-    element.style.setProperty("--chattia-button-hover", accentTokens.hover);
+    applyAccent(accent, currentTokens);
+    return {
+      updateAccent(nextAccent) {
+        const nextTokens = {
+          header: colorWithAlpha(nextAccent, 0.12, currentTokens.header),
+          focus: colorWithAlpha(nextAccent, 0.18, currentTokens.focus),
+          glow: colorWithAlpha(nextAccent, 0.45, currentTokens.glow),
+          hover: colorWithAlpha(nextAccent, 0.35, currentTokens.hover),
+        };
+        applyAccent(nextAccent, nextTokens);
+        currentTokens = nextTokens;
+      },
+    };
+  }
 
+  function createHeader(titleText) {
     const header = document.createElement("header");
     header.className = "chattia-shell__header";
     const title = document.createElement("h2");
     title.className = "chattia-shell__title";
-    title.textContent = config.title;
+    title.textContent = titleText;
     title.setAttribute("role", "heading");
     title.setAttribute("aria-level", "2");
     header.appendChild(title);
 
-    const messages = document.createElement("div");
-    messages.className = "chattia-shell__messages";
-    messages.setAttribute("role", "log");
-    messages.setAttribute("aria-live", "polite");
-    messages.setAttribute("aria-label", `${config.title} conversation transcript`);
+    return {
+      element: header,
+      setTitle(nextTitle) {
+        title.textContent = nextTitle;
+      },
+    };
+  }
 
-    const status = document.createElement("div");
-    status.className = "chattia-shell__status";
-    status.setAttribute("role", "status");
-    status.setAttribute("aria-live", "polite");
+  function createMessageLog(titleText) {
+    const element = document.createElement("div");
+    element.className = "chattia-shell__messages";
+    element.setAttribute("role", "log");
+    element.setAttribute("aria-live", "polite");
+    element.setAttribute("aria-label", `${titleText} conversation transcript`);
 
+    return {
+      element,
+      scrollToBottom() {
+        element.scrollTop = element.scrollHeight;
+      },
+      updateLabel(nextTitle) {
+        element.setAttribute("aria-label", `${nextTitle} conversation transcript`);
+      },
+    };
+  }
+
+  function createStatus() {
+    const element = document.createElement("div");
+    element.className = "chattia-shell__status";
+    element.setAttribute("role", "status");
+    element.setAttribute("aria-live", "polite");
+
+    return {
+      element,
+      set(text) {
+        element.textContent = text;
+      },
+      get() {
+        return element.textContent;
+      },
+    };
+  }
+
+  function createComposer(config) {
     const form = document.createElement("form");
     form.className = "chattia-shell__form";
     form.setAttribute("aria-label", `${config.title} message composer`);
@@ -196,20 +223,80 @@
     button.type = "submit";
     button.textContent = config.sendLabel;
     button.setAttribute("aria-label", config.sendLabel);
-
     form.append(input, button);
-    element.append(header, messages, status, form);
+    
+    return {
+      element: form,
+      input,
+      button,
+      setPlaceholder(placeholder) {
+        input.placeholder = placeholder;
+        input.setAttribute("aria-label", placeholder);
+      },
+      setComposerTitle(title) {
+        form.setAttribute("aria-label", `${title} message composer`);
+      },
+      setSendLabel(label) {
+        button.textContent = label;
+        button.setAttribute("aria-label", label);
+      },
+    };
+  }
+
+  function createConciergeShell(config) {
+    const shell = document.createElement("section");
+    shell.className = "chattia-shell";
+    shell.dataset.busy = "false";
+
+    const cosmetics = createCosmeticLayer(shell, config.accent);
+    const header = createHeader(config.title);
+    const log = createMessageLog(config.title);
+    const status = createStatus();
+    const composer = createComposer(config);
+
+    shell.append(header.element, log.element, status.element, composer.element);
+
+    return { shell, cosmetics, header, log, status, composer };
+  }
+
+  function mount(element, options = {}) {
+    if (!element) return null;
+
+    const config = {
+      endpoint: normalizeEndpoint(element, options),
+      title: normalize(element, "title", options, "Assistant"),
+      accent: normalize(element, "accent", options, "#2563eb"),
+      placeholder: normalize(element, "placeholder", options, "Ask me anything…"),
+      welcome: normalize(element, "welcome", options, "How can I support you today?"),
+      sendLabel: normalize(element, "send-label", options, "Send"),
+      storageKey: normalize(element, "storage-key", options, null),
+    };
+
+    const persistedState = readPersistedState(config.storageKey) || {};
+
+    const state = {
+      sessionId: options.sessionId || persistedState.sessionId || null,
+      busy: false,
+      typingBubble: null,
+      messages: Array.isArray(persistedState.messages) ? [...persistedState.messages] : [],
+    };
+
+    element.innerHTML = "";
+
+    const { shell, cosmetics, header, log, status, composer } = createConciergeShell(config);
+    element.appendChild(shell);
 
     function autoResizeTextarea() {
-      input.style.height = "auto";
-      input.style.height = `${Math.min(input.scrollHeight, 200)}px`;
+      const textarea = composer.input;
+      textarea.style.height = "auto";
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
     }
 
     function updateBusyState(nextBusy) {
       state.busy = nextBusy;
-      button.disabled = nextBusy;
-      form.setAttribute("aria-busy", String(nextBusy));
-      element.dataset.busy = String(nextBusy);
+      composer.button.disabled = nextBusy;
+      composer.element.setAttribute("aria-busy", String(nextBusy));
+      shell.dataset.busy = String(nextBusy);
     }
 
     function saveState() {
@@ -228,8 +315,8 @@
 
     function appendBubble(role, text, persist = true) {
       const bubble = createBubble(role, text);
-      messages.appendChild(bubble);
-      messages.scrollTop = messages.scrollHeight;
+      log.element.appendChild(bubble);
+      log.scrollToBottom();
       if (persist) {
         state.messages.push({ role, text });
         saveState();
@@ -242,9 +329,9 @@
         return;
       }
       updateBusyState(true);
-      status.textContent = "Connecting…";
+      status.set("Connecting…");
       appendBubble("user", prompt);
-      input.value = "";
+      composer.input.value = "";
       autoResizeTextarea();
 
       if (state.typingBubble) {
@@ -256,8 +343,9 @@
         const dot = document.createElement("span");
         state.typingBubble.appendChild(dot);
       });
-      messages.appendChild(state.typingBubble);
-      messages.scrollTop = messages.scrollHeight;
+
+      log.element.appendChild(state.typingBubble);
+      log.scrollToBottom();
 
       try {
         const headers = { "content-type": "application/json" };
@@ -276,10 +364,10 @@
         }
         const message = data && data.result ? formatResult(data.result) : "No response received.";
         appendBubble("assistant", message);
-        status.textContent = response.ok ? "Ready" : "Assistant reported an issue.";
+        status.set(response.ok ? "Ready" : "Assistant reported an issue.");
       } catch (error) {
         appendBubble("assistant", "An error occurred while contacting the assistant.");
-        status.textContent = "Connection error";
+        status.set("Connection error");
         console.error("ChattiaEmbed error", error);
       } finally {
         if (state.typingBubble) {
@@ -291,53 +379,55 @@
       }
     }
 
-    form.addEventListener("submit", (event) => {
+    composer.element.addEventListener("submit", (event) => {
       event.preventDefault();
-      dispatchPrompt(input.value.trim());
+      dispatchPrompt(composer.input.value.trim());
     });
 
-    input.addEventListener("keydown", (event) => {
+    composer.input.addEventListener("keydown", (event) => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
-        dispatchPrompt(input.value.trim());
+        dispatchPrompt(composer.input.value.trim());
       }
     });
 
-    input.addEventListener("input", autoResizeTextarea);
+    composer.input.addEventListener("input", autoResizeTextarea);
     autoResizeTextarea();
 
     if (state.messages.length > 0) {
       state.messages.forEach(({ role, text }) => {
         appendBubble(role, text, false);
       });
-      status.textContent = "Ready";
+      
+      status.set("Ready");
     } else if (config.welcome) {
       appendBubble("assistant", config.welcome);
     }
 
-    status.textContent = status.textContent || "Ready";
+    status.set(status.get() || "Ready");
     saveState();
 
     return {
       element,
+      shell,
       send(prompt) {
         dispatchPrompt(prompt);
       },
       update(updates = {}) {
         if (updates.title) {
-          title.textContent = updates.title;
+          header.setTitle(updates.title);
+          log.updateLabel(updates.title);
+          composer.setComposerTitle(updates.title);
         }
         if (updates.placeholder) {
-          input.placeholder = updates.placeholder;
-          input.setAttribute("aria-label", updates.placeholder);
+          composer.setPlaceholder(updates.placeholder);
         }
         if (updates.accent) {
           const accent = updates.accent;
-          element.style.setProperty("--chattia-accent", accent);
-          element.style.setProperty("--chattia-header-bg", colorWithAlpha(accent, 0.12, accentTokens.header));
-          element.style.setProperty("--chattia-focus-ring", colorWithAlpha(accent, 0.18, accentTokens.focus));
-          element.style.setProperty("--chattia-glow", colorWithAlpha(accent, 0.45, accentTokens.glow));
-          element.style.setProperty("--chattia-button-hover", colorWithAlpha(accent, 0.35, accentTokens.hover));
+          cosmetics.updateAccent(accent);
+        }
+        if (updates.sendLabel) {
+          composer.setSendLabel(updates.sendLabel);
         }
       },
     };
