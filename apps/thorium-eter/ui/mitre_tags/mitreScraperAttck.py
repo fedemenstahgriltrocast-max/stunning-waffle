@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Generate ATT&CK tags from the public MITRE ATT&CK STIX dataset.
-
 Historically this script expected a git submodule checkout of the
 ``mitreattack-python`` project and executed one of its helper utilities
 directly from disk.  The repository no longer vendors that submodule, so we now
 fetch the dataset from MITRE's public STIX repository instead.  The downloaded
 payload is cached locally to support air-gapped executions.
-
 The generated ``attackTagsList.tags`` file is sorted to provide a stable output
 order suitable for committing into the monorepo. The script also exposes a
 small CLI so cached bundles can be refreshed on demand or consumed in offline
@@ -15,15 +13,12 @@ mode.
 """
 
 from __future__ import annotations
-
 import json
 import argparse
 from pathlib import Path
 from typing import Iterable, List
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
-
-
 DATA_DIR = Path(__file__).resolve().parent
 DEFAULT_CACHE_PATH = DATA_DIR / "enterprise-attack.json"
 DEFAULT_OUTPUT_PATH = DATA_DIR / "attackTagsList.tags"
@@ -31,7 +26,6 @@ DEFAULT_STIX_URL = (
     "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/"
     "enterprise-attack/enterprise-attack.json"
 )
-
 
 def _load_stix_bundle(
     *,
@@ -73,8 +67,6 @@ def _load_stix_bundle(
 
     cache_path.write_text(payload, encoding="utf-8")
     return json.loads(payload)
-
-
 def _iter_attack_tags(bundle: dict) -> Iterable[str]:
     objects: List[dict] = bundle.get("objects", [])  # type: ignore[assignment]
     for obj in objects:
@@ -97,11 +89,8 @@ def _iter_attack_tags(bundle: dict) -> Iterable[str]:
 
         if not name or not external_id or not kill_chain_phases:
             continue
-
         for tactic in kill_chain_phases:
             yield f"{tactic}::{name} {external_id}"
-
-
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate MITRE ATT&CK tag list from the public STIX dataset."
@@ -137,8 +126,6 @@ def _parse_args() -> argparse.Namespace:
     if args.offline and args.force_refresh:
         parser.error("--offline cannot be combined with --force-refresh")
     return args
-
-
 def main() -> None:
     args = _parse_args()
     bundle = _load_stix_bundle(
@@ -149,7 +136,5 @@ def main() -> None:
     )
     tag_entries = sorted(_iter_attack_tags(bundle))
     args.output_path.write_text("\n".join(tag_entries) + "\n", encoding="utf-8")
-
-
 if __name__ == "__main__":
     main()
