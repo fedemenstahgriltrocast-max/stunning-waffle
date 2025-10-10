@@ -1,15 +1,17 @@
 # GitHub Actions checkout troubleshooting
 
-The GitHub Actions logs show the following fatal error during the submodule
+The GitHub Actions logs showed the following fatal error during the submodule
 update step:
 
 ```
 Error: fatal: No url found for submodule path 'apps/thorium-eter/ui/mitre_tags/mitreattack-python' in .gitmodules
 ```
 
-This is the same message that appeared before the repository stopped vendoring
-the `mitreattack-python` helper project. The monorepo no longer tracks that
-submodule (there is no gitlink entry under
-`apps/thorium-eter/ui/mitre_tags/`, nor an entry inside `.gitmodules`), so the
-checkout failure is just Git reacting to a stale submodule configuration on the
-runner. No additional fixes are required at this time.
+This was triggered by a stale `.gitmodules` file that lived inside the
+`apps/thorium-eter` subtree. Because the monorepo does not vendor the
+`mitreattack-python` helper project anymore, Git could not find a matching entry
+at the repository root and aborted the recursive submodule update.
+
+Removing `apps/thorium-eter/.gitmodules` resolves the failure for fresh clones
+and GitHub Actions checkouts that request submodules. No further action is
+required once the removal lands on the default branch.
