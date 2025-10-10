@@ -123,6 +123,8 @@ const log   = qs('#chat-log'),
       send  = qs('#chatbot-send'),
       guard = qs('#human-check');
 
+const conversation = [];
+
 guard.onchange = () => send.disabled = !guard.checked;
 
 function addMsg(txt,cls){
@@ -133,6 +135,79 @@ function addMsg(txt,cls){
   log.scrollTop = log.scrollHeight;
 }
 
+function getLang(){
+  return document.documentElement.lang === 'es' ? 'es' : 'en';
+}
+
+function pickTranslation(text){
+  return getLang() === 'es' ? text.es : text.en;
+}
+
+const knowledgeBase = [
+  {
+    match: (msg)=>/^(hi|hello|hola|hey)\b/.test(msg),
+    reply:{
+      en:"Hello! I'm the OPS AI assistant. Ask about security layers, compliance, or how to use the chatbot.",
+      es:"¡Hola! Soy el asistente OPS AI. Pregunta sobre las capas de seguridad, el cumplimiento o cómo usar el chatbot."
+    }
+  },
+  {
+    match: msg=>msg.includes('layer')||msg.includes('capas'),
+    reply:{
+      en:"Our chatbot follows a 7-layer blueprint: UI, firewall, Thorium analysis, Tiny ML, Tiny LLM, orchestration, and backbone analytics. Let me know which layer you want to explore!",
+      es:"Nuestro chatbot sigue un plano de 7 capas: interfaz, cortafuegos, análisis Thorium, Tiny ML, Tiny LLM, orquestación y analítica de la columna vertebral. ¡Dime qué capa quieres explorar!"
+    }
+  },
+  {
+    match: msg=>msg.includes('security')||msg.includes('seguridad')||msg.includes('pci'),
+    reply:{
+      en:"Security is enforced with Zero Trust, MFA, encryption, and logging aligned with NIST CSF + PCI DSS 4.0. Each layer authenticates requests before processing them.",
+      es:"La seguridad se refuerza con Zero Trust, MFA, cifrado y registros alineados con NIST CSF + PCI DSS 4.0. Cada capa autentica las solicitudes antes de procesarlas."
+    }
+  },
+  {
+    match: msg=>msg.includes('help')||msg.includes('ayuda')||msg.includes('what can you do')||msg.includes('qué puedes hacer'),
+    reply:{
+      en:"You can ask for platform guidance, compliance tips, or summaries of previous answers. For a fresh start, type 'reset'.",
+      es:"Puedes solicitar orientación de la plataforma, consejos de cumplimiento o resúmenes de respuestas previas. Para reiniciar, escribe 'reset'."
+    }
+  },
+  {
+    match: msg=>msg.includes('reset'),
+    action: ()=>{
+      log.innerHTML='';
+      conversation.length=0;
+      const greeting = pickTranslation(welcomeMessage);
+      addMsg(greeting,'bot');
+      recordAssistant(greeting);
+      return pickTranslation({
+        en:'Conversation reset. Ready when you are!',
+        es:'Conversación reiniciada. ¡Listo cuando quieras!'
+      });
+    }
+  },
+  {
+    match: msg=>msg.includes('thanks')||msg.includes('thank you')||msg.includes('gracias'),
+    reply:{
+      en:"Happy to help! Let me know if you need anything else.",
+      es:"Encantado de ayudar. Avísame si necesitas algo más."
+    }
+  }
+];
+
+const welcomeMessage = {
+  en:"Welcome! Check the box to confirm you're human, then share your question about the OPS AI stack.",
+  es:"¡Bienvenido! Marca la casilla para confirmar que eres humano y cuéntame tu pregunta sobre la plataforma OPS AI."
+};
+
+function recordAssistant(text){
+  conversation.push({ role:'assistant', content:text });
+}
+
+const initialGreeting = pickTranslation(welcomeMessage);
+addMsg(initialGreeting,'bot');
+recordAssistant(initialGreeting);
+
 form.onsubmit = async e=>{
   e.preventDefault();
   if(!guard.checked) return;
@@ -140,18 +215,48 @@ form.onsubmit = async e=>{
   const msg = input.value.trim();
   if(!msg) return;
   addMsg(msg,'user');
+  conversation.push({ role:'user', content:msg });
   input.value=''; send.disabled=true;
   addMsg('…','bot');
 
-  try{
-    const r = await fetch('https://your-cloudflare-worker.example.com/chat',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({message:msg})
-    });
-    const d = await r.json();
-    log.lastChild.textContent = d.reply || 'No reply.';
-  }catch{
-    log.lastChild.textContent = 'Error: Can’t reach AI.';
+  const typingBubble = log.lastChild;
+
+  const response = await new Promise(resolve=>{
+    setTimeout(()=>{
+      const lower = msg.toLowerCase();
+      for(const entry of knowledgeBase){
+        if(entry.match(lower)){
+          if(entry.action){
+            const result = entry.action();
+            recordAssistant(result);
+            resolve(result);
+            return;
+          }
+          const replyText = pickTranslation(entry.reply);
+          recordAssistant(replyText);
+          resolve(replyText);
+          return;
+        }
+      }
+
+      const recap = conversation
+        .filter(turn=>turn.role==='assistant')
+        .slice(-2)
+        .map(turn=>turn.content)
+        .join(' ');
+
+      const fallback = pickTranslation({
+        en:`Here is what I understood: "${msg}". ${recap ? `Previously we covered: ${recap}` : 'Ask about compliance, orchestration, or deployment for more detail.'}`,
+        es:`Esto es lo que entendí: "${msg}". ${recap ? `Anteriormente revisamos: ${recap}` : 'Pregunta sobre cumplimiento, orquestación o despliegue para más detalles.'}`
+      });
+      recordAssistant(fallback);
+      resolve(fallback);
+    }, Math.min(1500, 400 + msg.length * 25));
+  });
+
+  typingBubble.textContent = response;
+  if(conversation[conversation.length-1]?.role !== 'assistant'){
+    recordAssistant(response);
   }
   send.disabled=false;
 };
