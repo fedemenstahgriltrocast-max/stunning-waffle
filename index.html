@@ -295,6 +295,58 @@ const integrationDomains = [
     }
   },
   {
+
+    keywords:['ci/cd','cicd','automation','pipeline','github actions','devsecops','release'],
+    hint:{
+      en:'• CI/CD automation → say "ci/cd integration" to harden GitHub Actions + secure releases.',
+      es:'• Automatización CI/CD → escribe "integración ci/cd" para asegurar GitHub Actions y despliegues.'
+    },
+    detail:{
+      en:[
+        'CI/CD Automation Integration Checklist:',
+        '1. Use GitHub Actions with OIDC federation to Cloudflare; avoid long-lived deploy keys.',
+        '2. Add DevSecOps stages: npm audit, SAST (CodeQL), dependency review, and IaC scans.',
+        '3. Require signed commits + branch protection with mandatory reviews for policy changes.',
+        '4. Store build artifacts in immutable buckets (R2) and sign releases with Sigstore.',
+        '5. Trigger post-deploy smoke tests + rollback automation when health checks fail.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación de automatización CI/CD:',
+        '1. Usa GitHub Actions con federación OIDC hacia Cloudflare; evita claves de despliegue de larga duración.',
+        '2. Añade etapas DevSecOps: npm audit, SAST (CodeQL), revisión de dependencias y escaneos IaC.',
+        '3. Exige commits firmados y protección de ramas con revisiones obligatorias para cambios de política.',
+        '4. Guarda artefactos de build en buckets inmutables (R2) y firma versiones con Sigstore.',
+        '5. Lanza pruebas post-despliegue y automatiza rollback cuando fallen los health checks.'
+      ].join('\n')
+    }
+  },
+  {
+    keywords:['data','analytics','insights','metrics','telemetry','ux','personalization'],
+    hint:{
+      en:'• Data science & insights → enter "data integration" for analytics and personalization loops.',
+      es:'• Ciencia de datos e insights → escribe "integración de datos" para analítica y personalización.'
+    },
+    detail:{
+      en:[
+        'Data Science & Insights Integration Checklist:',
+        '1. Capture Core Web Vitals + chatbot engagement to Analytics pipelines (Workers → R2 → BigQuery/Snowflake).',
+        '2. Anonymize user identifiers (hash + salt) before exporting behavioral datasets.',
+        '3. Train Tiny ML/LLM models on curated datasets; validate bias and drift quarterly.',
+        '4. Feed telemetry to adaptive UX rules (hint prompts, theme recommendations) via feature flags.',
+        '5. Share dashboards with product, security, and compliance stakeholders for continuous improvement.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación de ciencia de datos e insights:',
+        '1. Captura Core Web Vitals y engagement del chatbot en pipelines de analítica (Workers → R2 → BigQuery/Snowflake).',
+        '2. Anonimiza identificadores de usuario (hash + salt) antes de exportar conjuntos de comportamiento.',
+        '3. Entrena modelos Tiny ML/LLM con datos curados; valida sesgo y drift trimestralmente.',
+        '4. Retroalimenta la telemetría a reglas UX adaptativas (prompts, recomendaciones de tema) mediante feature flags.',
+        '5. Comparte paneles con producto, seguridad y cumplimiento para la mejora continua.'
+      ].join('\n')
+    }
+  },
+  {
+
     keywords:['compliance','governance','pci','nist','audit'],
     hint:{
       en:'• Compliance & governance → try "compliance integration" for NIST/PCI mapping.',
@@ -377,7 +429,9 @@ const knowledgeBase = [
         '4. Knowledge + memory: KV, Durable Objects, or Vectorize for encrypted storage.',
         '5. Secrets & config: Secrets Manager or Wrangler secrets with automated rotation.',
         '6. Observability: Logs streaming to SIEM, analytics dashboards, and alerting.',
-        '7. Compliance automation: GitHub Actions CI/CD with security scanning and audit trails.',
+        '7. CI/CD automation: Federated GitHub Actions pipelines with DevSecOps controls.',
+        '8. Data science & insights: Analytics pipelines powering personalization and telemetry.',
+        '9. Compliance automation: GitHub Actions CI/CD with security scanning and audit trails.',
         '',
         'Dive deeper by requesting any domain:',
         integrationHints.en
@@ -390,10 +444,58 @@ const knowledgeBase = [
         '4. Conocimiento + memoria: KV, Durable Objects o Vectorize para almacenamiento cifrado.',
         '5. Secretos y configuración: Secrets Manager o secretos de Wrangler con rotación automatizada.',
         '6. Observabilidad: Registros hacia el SIEM, paneles analíticos y alertas.',
-        '7. Automatización de cumplimiento: CI/CD en GitHub Actions con escaneos de seguridad y trazabilidad.',
+        '7. Automatización CI/CD: Pipelines federados de GitHub Actions con controles DevSecOps.',
+        '8. Ciencia de datos e insights: Pipelines analíticos que habilitan personalización y telemetría.',
+        '9. Automatización de cumplimiento: CI/CD en GitHub Actions con escaneos de seguridad y trazabilidad.',
         '',
         'Profundiza solicitando cualquier dominio:',
         integrationHints.es
+      ].join('\n')
+    }
+  },
+  {
+    match: msg=>msg.includes('roadmap')||msg.includes('plan')||msg.includes('hoja de ruta'),
+    reply:{
+      en:[
+        'Suggested rollout roadmap (weeks 0-6):',
+        '• Week 0-1 → Stand up Cloudflare Pages + WAF policies, baseline observability.',
+        '• Week 2 → Wire CI/CD (GitHub Actions OIDC) with automated security scans.',
+        '• Week 3 → Deploy Workers conversation engine + secrets rotation.',
+        '• Week 4 → Activate knowledge bases (KV/Vectorize) and data pipelines.',
+        '• Week 5 → Run compliance reviews (PCI, GDPR) and finalize governance docs.',
+        '• Week 6 → Launch adaptive UX experiments, measure Core Web Vitals, iterate.'
+      ].join('\n'),
+      es:[
+        'Hoja de ruta sugerida (semanas 0-6):',
+        '• Semana 0-1 → Levanta Cloudflare Pages + políticas WAF y observabilidad base.',
+        '• Semana 2 → Conecta CI/CD (GitHub Actions OIDC) con escaneos de seguridad automatizados.',
+        '• Semana 3 → Despliega el motor conversacional en Workers y la rotación de secretos.',
+        '• Semana 4 → Activa bases de conocimiento (KV/Vectorize) y pipelines de datos.',
+        '• Semana 5 → Ejecuta revisiones de cumplimiento (PCI, GDPR) y finaliza la gobernanza.',
+        '• Semana 6 → Lanza experimentos UX adaptativos, mide Core Web Vitals y itera.'
+      ].join('\n')
+    }
+  },
+  {
+    match: msg=>msg.includes('architecture')||msg.includes('arquitectura')||msg.includes('diagram'),
+    reply:{
+      en:[
+        'Reference architecture overview:',
+        '• Frontend: Chat UI on Cloudflare Pages with strict CSP/HSTS.',
+        '• Edge Control: Cloudflare WAF + Zero Trust enforcing identity-aware routing.',
+        '• Workers Mesh: Proxy to LLM providers, Vectorize, and Durable Objects.',
+        '• Data Plane: R2 + KV + analytics warehouse feeding Tiny ML personalization.',
+        '• Automation: GitHub Actions OIDC → Cloudflare deployments with signed artifacts.',
+        '• Governance: Policy repos + audit dashboards aligned with OPS CyberSec Core.'
+      ].join('\n'),
+      es:[
+        'Resumen de arquitectura de referencia:',
+        '• Frontend: UI del chat en Cloudflare Pages con CSP/HSTS estrictos.',
+        '• Control perimetral: WAF de Cloudflare + Zero Trust con enrutamiento consciente de identidad.',
+        '• Malla de Workers: Proxy hacia proveedores LLM, Vectorize y Durable Objects.',
+        '• Plano de datos: R2 + KV + data warehouse analítico que alimenta personalización Tiny ML.',
+        '• Automatización: GitHub Actions OIDC → despliegues en Cloudflare con artefactos firmados.',
+        '• Gobernanza: Repos de políticas + dashboards de auditoría alineados con OPS CyberSec Core.'
       ].join('\n')
     }
   },
