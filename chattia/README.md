@@ -13,6 +13,7 @@ and instrumentation without redeploying the secure automation layers.
 - Real-time UX feedback with a built-in typing indicator, auto-resizing composer, and stateful status messaging.
 - Theme-ready CSS custom properties for accent, focus, glow, and hover treatments with graceful fallbacks.
 - Concierge cosmetics encapsulated inside the interaction window so visual refreshes stay isolated from functional layers.
+- Programmatic update API keeps title, aria labels, placeholder, send label, and accent tokens in sync without touching runtime logic.
 
 ## Quick Start
 1. Host `embed/widget.js` on a static origin (Pages, Netlify, Firebase, etc.).
@@ -77,6 +78,9 @@ code and a body describing the failure.
 - Accent tokens are recalculated through a cosmetic manager that gracefully
   falls back to the last known good palette, ensuring runtime updates cannot
   corrupt the functional pipeline.
+- A `createConciergeShell` builder assembles header, log, status, and composer
+  nodes, exposing update helpers so future visual refreshes can swap cosmetics
+  or copy safely without touching persistence, networking, or security guards.
 
 ## Runtime Flow
 
@@ -88,14 +92,15 @@ Chattia Embed Runtime
 ├── State Management
 │   ├── Session + transcript cache (optional `localStorage`)
 │   └── Busy + typing indicators, ARIA status updates
-├── UI Shell
-│   ├── Interaction window host (`<section class="chattia-shell">`)
-│   ├── Header landmark with dynamic title
-│   ├── Live message log (ARIA `role="log"`)
+├── UI Shell Builder
+│   ├── `createConciergeShell` returns header, log, status, composer references
+│   ├── Header landmark with dynamic title + aria wiring helpers
+│   ├── Live message log (ARIA `role="log"` with scroll isolation)
 │   └── Composer form (textarea, send button, keyboard shortcuts)
 ├── Cosmetic Layer
 │   ├── Inline stylesheet scoped to `.chattia-shell` descendants
-│   └── Accent token manager with update-safe fallbacks
+│   ├── Accent token manager with update-safe fallbacks
+│   └── Programmatic `updateAccent` hook for tenant theming
 └── Network Lifecycle
     ├── Fetch POST to configured endpoint with session headers
     ├── JSON parsing + resilience to malformed payloads
