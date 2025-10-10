@@ -12,7 +12,7 @@ private or edge-friendly environments.
 - Record latency and token usage metrics for observability.
 
 ## Setup Checklist
-1. Deploy the Worker at `infrastructure/edge-mesh/workers/layer5-tiny-llm`.
+1. Deploy the Worker at `edge-mesh/workers/layer5-tiny-llm`.
 2. Bind `HMAC_SECRET`, `TINY_LLM_ENDPOINT`, and `TINY_LLM_API_KEY` as secrets.
 3. Configure network policies (mTLS, Access service tokens) for upstream
    inference endpoints.

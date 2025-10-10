@@ -14,7 +14,7 @@ and audit storage.
   analytics systems via Zero Trust tunnels.
 
 ## Setup Checklist
-1. Deploy the Worker located at `infrastructure/edge-mesh/workers/layer7-backbone`.
+1. Deploy the Worker located at `edge-mesh/workers/layer7-backbone`.
 2. Bind `HMAC_SECRET` and optional `AUDIT_BUCKET` (object storage) along with
    service bindings to MCP or analytics Workers. Consider per-tenant buckets or
    prefixes plus a metadata table that maps tenant IDs to storage locations.

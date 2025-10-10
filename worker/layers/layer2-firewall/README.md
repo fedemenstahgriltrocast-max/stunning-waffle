@@ -10,7 +10,7 @@ traffic reaches sensitive layers.
 - Emit analytics events for Zero Trust dashboards and SIEM ingestion.
 
 ## Setup Checklist
-1. Deploy the Worker in `infrastructure/edge-mesh/workers/layer2-firewall`.
+1. Deploy the Worker in `edge-mesh/workers/layer2-firewall`.
 2. Bind the shared `HMAC_SECRET` and a service binding to Layer 6.
 3. Integrate your preferred guardrail engine for policy enforcement.
 4. Document `/verify` and `/forward` endpoints via `openapi.yaml`.

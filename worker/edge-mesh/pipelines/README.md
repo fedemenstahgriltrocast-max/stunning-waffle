@@ -28,13 +28,13 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: ultimate-chatbot/infrastructure/edge-mesh/workers/package.json
+          cache-dependency-path: worker/edge-mesh/workers/package.json
       - run: npm install
-        working-directory: ultimate-chatbot/infrastructure/edge-mesh/workers
+        working-directory: worker/edge-mesh/workers
       - run: npm run lint
-        working-directory: ultimate-chatbot/infrastructure/edge-mesh/workers
+        working-directory: worker/edge-mesh/workers
       - run: npm run build -- --env ${{ inputs.layer }}
-        working-directory: ultimate-chatbot/infrastructure/edge-mesh/workers
+        working-directory: worker/edge-mesh/workers
       - run: npx wrangler deploy --env ${{ inputs.layer }}
         env:
           EDGEMESH_API_TOKEN: ${{ secrets.EDGEMESH_API_TOKEN }}

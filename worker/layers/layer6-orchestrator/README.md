@@ -12,7 +12,7 @@ Tiny LLM, deep-analysis, and enterprise backbone layers.
 - Maintain conversation/session metadata in Durable Objects or KV.
 
 ## Setup Checklist
-1. Deploy the Worker located at `infrastructure/edge-mesh/workers/layer6-orchestrator`.
+1. Deploy the Worker located at `edge-mesh/workers/layer6-orchestrator`.
 2. Bind `HMAC_SECRET` plus service bindings to Layers 3–5 and 7.
 3. Attach storage (D1, KV, Durable Objects) for multi-turn context management
    and tenant registry data (document status, allowed tools).

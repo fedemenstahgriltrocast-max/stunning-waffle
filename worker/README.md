@@ -1,4 +1,4 @@
-# Ultimate 7-Layer Chatbot Blueprint
+# Edge Worker Mesh – 7-Layer Blueprint
 
 ## Feasibility Summary
 Building a "7-layer" chatbot stack that keeps each layer isolated yet
@@ -18,10 +18,15 @@ This separation satisfies cyber security requirements, simplifies incident
 response, and keeps sensitive inference or scanning logic in compartmentalized
 environments.
 
+For clean decoupling, all end-user interface assets live in `../chattia`, while
+this `worker/` tree focuses solely on the Worker mesh, security policies, and
+operations runbooks. You can iterate on the Chattia widget without redeploying
+Workers, and vice versa.
+
 ## Layered Architecture Mapping
 | Layer | Purpose | Recommended Component(s) | EdgeMesh Role |
 |-------|---------|---------------------------|-----------------|
-| 1. User Interface | Multilingual chat front ends with PDF/BM25 search. | `index.html`, UI templates within `apps/` | Static assets on edge pages; Worker proxy injects auth tokens, rate limits. |
+| 1. User Interface | Multilingual chat front ends with PDF/BM25 search. | `../chattia/embed/widget.js`, UI templates within `apps/` | Static assets on edge pages; Worker proxy injects auth tokens, rate limits. |
 | 2. Firewall & Policy | Prompt/code moderation, anomaly detection, request brokering. | Safeguard toolkits within `apps/` | Dedicated Worker enforcing guardrail heuristics; integrates with EdgeMesh perimeter policies. |
 | 3. Deep Analysis Layer | Deep file/repo inspection and SOC automation. | Forensic automation stacks within `apps/` | Isolated Worker with Durable Object orchestrating remote scanners (private tunnel to analysis cluster). |
 | 4. Tiny ML Services | Edge-friendly classical ML scoring (intent, BM25, embeddings). | Lightweight ML utilities within `apps/` | Worker with WASM models, Workers AI bindings, or KV for indexes. |
@@ -31,35 +36,34 @@ environments.
 
 ## Directory Structure Proposal
 ```
-ultimate-chatbot/
+worker/
 ├── README.md                # This blueprint
-├── infrastructure/
-│   ├── edge-mesh/
-│   │   ├── wrangler.toml    # Shared defaults with service bindings
-│   │   ├── workers/
-│   │   │   ├── layer1-ui/
-│   │   │   ├── layer2-firewall/
-│   │   │   ├── layer3-thorium/
-│   │   │   ├── layer4-tiny-ml/
-│   │   │   ├── layer5-tiny-llm/
-│   │   │   ├── layer6-orchestrator/
-│   │   │   └── layer7-backbone/
-│   │   └── pipelines/       # GitHub Actions for wrangler deploy
-│   └── policies/
-│       ├── zero-trust.yml   # Access, device posture, logging configs
-│       └── compliance.md    # NIST/PCI control mappings
-└── layers/
-    ├── layer1-ui/
-    ├── layer2-firewall/
-    ├── layer3-thorium/
-    ├── layer4-tiny-ml/
-    ├── layer5-tiny-llm/
-    ├── layer6-orchestrator/
-    └── layer7-backbone/
+├── edge-mesh/
+│   ├── wrangler.toml        # Shared defaults with service bindings
+│   ├── workers/
+│   │   ├── layer1-ui/
+│   │   ├── layer2-firewall/
+│   │   ├── layer3-thorium/
+│   │   ├── layer4-tiny-ml/
+│   │   ├── layer5-tiny-llm/
+│   │   ├── layer6-orchestrator/
+│   │   └── layer7-backbone/
+│   └── pipelines/           # GitHub Actions for wrangler deploy
+├── layers/
+│   ├── layer1-ui/
+│   ├── layer2-firewall/
+│   ├── layer3-thorium/
+│   ├── layer4-tiny-ml/
+│   ├── layer5-tiny-llm/
+│   ├── layer6-orchestrator/
+│   └── layer7-backbone/
+└── policies/
+    ├── zero-trust.yml       # Access, device posture, logging configs
+    └── compliance.md        # NIST/PCI control mappings
 ```
 Each `layers/layerX-*` directory stores integration code, configuration, docs,
 and IaC excerpts specific to that layer. Deployment-ready Workers live under
-`infrastructure/edge-mesh/workers/` to keep runtime code distinct from design
+`edge-mesh/workers/` to keep runtime code distinct from design
 artifacts or local tooling. Boilerplate Workers, policies, and pipeline
 templates are now committed so you can clone, configure secrets, and deploy each
 layer independently.
@@ -67,17 +71,17 @@ layer independently.
 ## Scaffolded Implementation Assets
 
 - **EdgeMesh Workers** – Seven TypeScript entrypoints under
-  `infrastructure/edge-mesh/workers/` demonstrate session handling, firewall
+  `edge-mesh/workers/` demonstrate session handling, firewall
   checks, BM25 scoring, TinyLLM proxying, orchestration fan-out, and audit
   logging patterns. A shared `protocol.ts` module signs every inter-layer call
   with HMAC to enforce provenance and replay protection.
-- **Mesh Configuration** – `infrastructure/edge-mesh/wrangler.toml` defines
+- **Mesh Configuration** – `edge-mesh/wrangler.toml` defines
   per-layer environments, routes, and shared bindings that you can customize for
   your tenant.
-- **Security Policies** – `infrastructure/policies/zero-trust.yml` and
+- **Security Policies** – `policies/zero-trust.yml` and
   `compliance.md` align identity, posture, and logging controls with NIST CSF,
   PCI DSS 4.0, and public-sector Cyber Essentials guidance.
-- **Deployment Pipelines** – `infrastructure/edge-mesh/pipelines/README.md`
+- **Deployment Pipelines** – `edge-mesh/pipelines/README.md`
   includes a reusable GitHub Actions skeleton for CI/CD with Wrangler.
 - **Operational Runbooks** – Each `layers/layerX-*/README.md` outlines
   responsibilities, setup checklists, and handoffs for cross-team coordination.
@@ -127,21 +131,19 @@ layer independently.
   inference.
 
 ## Embedding the Chatbot
-Layer 1 now exposes an embeddable widget that can be dropped into any external
-site without revealing backend branding. Include the script and a container
-element wherever you want the chatbot to appear:
+The UI package that end users embed now lives in the sibling `../chattia`
+directory. Host `chattia/embed/widget.js` on a static origin and place a
+container like the example below on any website you manage:
 
 ```html
-<div data-ultimate-chatbot data-title="Concierge" data-welcome="Hi there!" style="max-width:420px"></div>
-<script src="https://layer1.example.com/embed.js" data-ultimate-chatbot defer></script>
+<div data-chattia-embed data-title="Concierge" data-endpoint="https://layer1.example.com/chat"></div>
+<script src="https://cdn.example.com/chattia/widget.js" defer></script>
 ```
 
-The script scans for `[data-ultimate-chatbot]` elements, injects a themed chat
-surface, and automatically exchanges signed payloads with the Layer 1 Worker.
-Optional data attributes (or JS options) let you customize title, accent color,
-placeholder text, welcome message, and target endpoint. For manual control you
-can call `window.UltimateChatEmbed.mount(element, { endpoint, title })` after
-loading the script.
+The script auto-mounts on `[data-chattia-embed]` elements, exchanges signed
+payloads with the Layer 1 Worker, and exposes `window.ChattiaEmbed` for manual
+initialization. Keeping the UI assets outside this `worker/` tree ensures the
+mesh can evolve independently of UX refreshes or tenant-specific theming.
 
 ## Multi-tenant Worker Mesh Strategy
 - **Worker-only Footprint** – Each layer can run exclusively as a Cloudflare

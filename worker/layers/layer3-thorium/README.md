@@ -10,7 +10,7 @@ analysis.
 - Provide incident evidence packages to Layer 7 on completion.
 
 ## Setup Checklist
-1. Deploy the Worker located in `infrastructure/edge-mesh/workers/layer3-thorium`.
+1. Deploy the Worker located in `edge-mesh/workers/layer3-thorium`.
 2. Bind `HMAC_SECRET` and configure Durable Objects or Queues for scan jobs.
 3. Establish a secure tunnel to your deep-analysis cluster (private network segment).
 4. Publish API schema for `/scan` endpoint in `openapi.yaml`.
