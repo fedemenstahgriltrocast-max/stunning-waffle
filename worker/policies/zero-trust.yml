@@ -1,0 +1,44 @@
+# EdgeMesh Zero Trust baseline policy
+# Map each layer to device posture, identity group, and logging requirements.
+
+layers:
+  layer1-ui:
+    access: ["public"]
+    posture_checks:
+      - captcha
+      - rate-limit
+    logging: workers-trace
+  layer2-firewall:
+    access: ["secops", "platform-engineering"]
+    posture_checks:
+      - mfa
+      - managed-device
+    logging: zero-trust-gateway
+  layer3-thorium:
+    access: ["secops"]
+    posture_checks:
+      - hardware-token
+      - soc-vpn
+    logging: thorium-audit
+  layer4-tiny-ml:
+    access: ["ml-engineering"]
+    posture_checks:
+      - managed-device
+    logging: ml-insights
+  layer5-tiny-llm:
+    access: ["ml-engineering", "product"]
+    posture_checks:
+      - managed-device
+      - mfa
+    logging: llm-audit
+  layer6-orchestrator:
+    access: ["platform-engineering"]
+    posture_checks:
+      - hardware-token
+    logging: orchestrator-trace
+  layer7-backbone:
+    access: ["secops", "compliance", "platform-engineering"]
+    posture_checks:
+      - soc-vpn
+      - hardware-token
+    logging: governance-ledger

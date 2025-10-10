@@ -1,0 +1,62 @@
+name = "edge-worker-mesh"
+main = "src/index.ts"
+compatibility_date = "2024-05-01"
+
+[vars]
+# Shared environment variables across layers go here.
+# Define non-secret defaults only. Use `wrangler secret put HMAC_SECRET` to inject
+# the shared signing key that powers inter-layer request validation.
+# Example: LOG_LEVEL = "info"
+
+[[kv_namespaces]]
+binding = "SESSION_KV"
+id = ""
+preview_id = ""
+
+[observability]
+logs = { enabled = true }
+
+[env.layer1]
+name = "edge-layer1-ui"
+main = "workers/layer1-ui/src/index.ts"
+route = "https://layer1.example.com/*"
+
+[env.layer2]
+name = "edge-layer2-firewall"
+main = "workers/layer2-firewall/src/index.ts"
+route = "https://layer2.example.com/*"
+
+[env.layer3]
+name = "edge-layer3-thorium"
+main = "workers/layer3-thorium/src/index.ts"
+route = "https://layer3.example.com/*"
+
+[env.layer4]
+name = "edge-layer4-tiny-ml"
+main = "workers/layer4-tiny-ml/src/index.ts"
+route = "https://layer4.example.com/*"
+
+[env.layer5]
+name = "edge-layer5-tiny-llm"
+main = "workers/layer5-tiny-llm/src/index.ts"
+route = "https://layer5.example.com/*"
+
+[env.layer6]
+name = "edge-layer6-orchestrator"
+main = "workers/layer6-orchestrator/src/index.ts"
+route = "https://layer6.example.com/*"
+
+[env.layer7]
+name = "edge-layer7-backbone"
+main = "workers/layer7-backbone/src/index.ts"
+route = "https://layer7.example.com/*"
+
+[dev]
+ip = "0.0.0.0"
+port = 8787
+local_protocol = "http"
+
+# Service bindings can be declared per environment, e.g.
+# [[env.layer2.services]]
+# binding = "FIREWALL"
+# service = "edge-layer2-firewall"
