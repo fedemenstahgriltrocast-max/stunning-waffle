@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>OPS AI Chatbot</title>
+
+<!-- Patched FontAwesome (CSP + SRI + CORS Safe) -->
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+  integrity="sha512-RXf+QSDCUqpphKAa+WAc3XQ8fE5H1aO/8e2wY+8Q1n8yVwDh1RZTf1TDN8E+u1n7eU5KyY7X2Qo+hqeZZn+UAQ=="
+  crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<style>
+/* ---------- COLOR SYSTEM ---------- */
+:root{
+  --clr-primary:#00c4ff;
+  --clr-accent :#ff3bdb;
+  --clr-accent-dark:#e000be;
+  --clr-bg  :#ffffff;
+  --clr-bg-dark:#121212;
+  --clr-tx  :#333333;
+  --clr-tx-dark:#f0f0f0;
+}
+body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;
+      font-family:'Segoe UI',Arial,sans-serif;background:var(--clr-bg);color:var(--clr-tx);
+      transition:background .3s,color .3s}
+body.dark{--clr-bg:var(--clr-bg-dark);--clr-tx:var(--clr-tx-dark)}
+
+/* ---------- CHATBOT ---------- */
+#chatbot-container{width:300px;height:540px;background:#251541;border:2px solid var(--clr-accent);
+  border-radius:18px;box-shadow:0 8px 32px #0006;display:flex;flex-direction:column;overflow:hidden}
+#chatbot-header{display:flex;justify-content:space-between;align-items:center;gap:.5rem;
+  background:linear-gradient(135deg,var(--clr-primary) 0%,var(--clr-accent) 100%);
+  color:#fff;font-weight:600;font-size:1.1rem;padding:.75rem 1rem}
+#chatbot-header .ctrl{cursor:pointer;font-size:.75rem;font-weight:500;user-select:none;opacity:.85}
+#chatbot-header .ctrl:hover{opacity:1}
+#chat-log{flex:1;overflow-y:auto;padding:1rem;background:#1b0e2d;color:#eee;font-size:.94rem}
+.chat-msg{margin:.5rem 0;max-width:90%}
+.user{margin-left:auto;background:var(--clr-primary);color:#000;padding:.5rem .7rem;border-radius:14px 14px 0 14px}
+.bot {margin-right:auto;background:#321b53;color:#fff;padding:.5rem .7rem;border-radius:14px 14px 14px 0}
+#chatbot-form-container{background:#220f3a;border-top:1px solid var(--clr-accent);padding:.55rem .7rem}
+#chatbot-input-row{display:flex;gap:.6rem}
+#chatbot-input{flex:1;background:transparent;border:none;color:#fff;font-size:.95rem;padding:.55rem .6rem}
+#chatbot-send{display:flex;align-items:center;gap:6px;background:var(--clr-accent);border:none;color:#fff;
+  font-weight:600;padding:.5rem .9rem;border-radius:8px;cursor:pointer;transition:.3s}
+#chatbot-send i{transition:transform .3s}
+#chatbot-send:hover i{transform:rotate(-45deg)}
+#chatbot-send:disabled{background:#555;cursor:not-allowed}
+.human-check{color:#ddd;font-size:.85rem;display:flex;align-items:center;margin-top:.3rem}
+.human-check input{margin-right:.4rem}
+@media(max-width:480px){#chatbot-container{height:75vh;width:90%}}
+</style>
+</head>
+<body>
+
+<!-- ---------- CHATBOT HTML ---------- -->
+<div id="chatbot-container" role="dialog" aria-modal="true">
+  <div id="chatbot-header">
+    <span id="title" data-en="OPS AI Chatbot" data-es="Chatbot OPS AI">OPS AI Chatbot</span>
+
+    <!-- tiny controls -->
+    <div>
+      <span id="langCtrl" class="ctrl">ES</span>
+      &nbsp;|&nbsp;
+      <span id="themeCtrl" class="ctrl">Dark</span>
+    </div>
+  </div>
+
+  <div id="chat-log" aria-live="polite"></div>
+
+  <div id="chatbot-form-container">
+    <form id="chatbot-input-row" autocomplete="off">
+      <input id="chatbot-input" type="text" placeholder="Type your message..." required maxlength="256"
+             data-en-ph="Type your message..." data-es-ph="Escriba su mensaje...">
+      <button id="chatbot-send" type="submit" disabled aria-label="Send">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </form>
+    <label class="human-check">
+      <input type="checkbox" id="human-check">
+      <span id="human-label" data-en="I am human" data-es="Soy humano">I am human</span>
+    </label>
+  </div>
+</div>
+
+<!-- ---------- CHATBOT LOGIC ---------- -->
+<script>
+const qs=s=>document.querySelector(s),
+      qsa=s=>[...document.querySelectorAll(s)];
+
+/* === Language toggle === */
+const langCtrl   = qs('#langCtrl'),
+      transNodes = qsa('[data-en]'),
+      phNodes    = qsa('[data-en-ph]'),
+      humanLab   = qs('#human-label');
+
+langCtrl.onclick = () => {
+  const toES = langCtrl.textContent === 'ES';      // going EN→ES ?
+  document.documentElement.lang = toES ? 'es' : 'en';
+  langCtrl.textContent = toES ? 'EN' : 'ES';
+
+  // text nodes
+  transNodes.forEach(node => node.textContent = toES ? node.dataset.es : node.dataset.en);
+
+  // placeholders
+  phNodes.forEach(node => node.placeholder  = toES ? node.dataset.esPh : node.dataset.enPh);
+  humanLab.textContent = toES ? humanLab.dataset.es : humanLab.dataset.en;
+};
+
+/* === Theme toggle === */
+const themeCtrl = qs('#themeCtrl');
+themeCtrl.onclick = () => {
+  const dark = themeCtrl.textContent === 'Dark';
+  document.body.classList.toggle('dark', dark);
+  themeCtrl.textContent = dark ? 'Light' : 'Dark';
+};
+
+/* === Chatbot core === */
+const log   = qs('#chat-log'),
+      form  = qs('#chatbot-input-row'),
+      input = qs('#chatbot-input'),
+      send  = qs('#chatbot-send'),
+      guard = qs('#human-check');
+
+const conversation = [];
+
+guard.onchange = () => send.disabled = !guard.checked;
+
+function addMsg(txt,cls){
+  const div = document.createElement('div');
+  div.className = 'chat-msg '+cls;
+  div.textContent = txt;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function getLang(){
+  return document.documentElement.lang === 'es' ? 'es' : 'en';
+}
+
+function pickTranslation(text){
+  return getLang() === 'es' ? text.es : text.en;
+}
+
+const integrationDomains = [
+  {
+    keywords:['delivery','cdn','pages','hosting'],
+    hint:{
+      en:'• Delivery integration → say "delivery integration" for CDN hardening + static hosting.',
+      es:'• Integración de entrega → escribe "integración de entrega" para endurecer CDN y hosting estático.'
+    },
+    detail:{
+      en:[
+        'Delivery Integration Checklist:',
+        '1. Host UI on Cloudflare Pages or Netlify; enforce immutable asset versioning.',
+        '2. Enable HTTPS, HTTP/3, HSTS (max-age ≥ 31536000, includeSubDomains, preload).',
+        '3. Configure Content-Security-Policy, Referrer-Policy, Permissions-Policy headers in _headers file.',
+        '4. Cache HTML cautiously (Cache-Control: no-cache) and allow CDN for static assets with cache busting.',
+        '5. Wire Lighthouse CI or Pages speed insights for Core Web Vitals monitoring.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación para la integración de entrega:',
+        '1. Hospeda la UI en Cloudflare Pages o Netlify; aplica versionado inmutable de activos.',
+        '2. Activa HTTPS, HTTP/3 y HSTS (max-age ≥ 31536000, includeSubDomains, preload).',
+        '3. Configura cabeceras Content-Security-Policy, Referrer-Policy y Permissions-Policy en el archivo _headers.',
+        '4. Cachea el HTML con cautela (Cache-Control: no-cache) y deja que el CDN maneje los recursos estáticos con busting.',
+        '5. Conecta Lighthouse CI o las métricas de Pages para vigilar Core Web Vitals.'
+      ].join('\n')
+    }
+  },
+  {
+    keywords:['identity','zero trust','mfa','oauth','auth0','okta'],
+    hint:{
+      en:'• Identity integration → ask "identity integration" to configure Zero Trust + OAuth.',
+      es:'• Integración de identidad → solicita "integración de identidad" para configurar Zero Trust + OAuth.'
+    },
+    detail:{
+      en:[
+        'Identity Integration Checklist:',
+        '1. Enable Cloudflare Zero Trust Access for chat admin routes; require device posture + MFA.',
+        '2. Register the chatbot with your IdP (Okta/Auth0/Azure AD) using OAuth/OIDC confidential client.',
+        '3. Issue short-lived JWTs with audience scoping; rotate signing keys via Secrets Manager.',
+        '4. Map roles (viewer, operator, engineer) to Access policies and restrict admin APIs.',
+        '5. Log authentication events to SIEM and alert on MFA bypass attempts.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación para la integración de identidad:',
+        '1. Activa Cloudflare Zero Trust Access para rutas administrativas; exige postura de dispositivo y MFA.',
+        '2. Registra el chatbot en tu IdP (Okta/Auth0/Azure AD) usando un cliente confidencial OAuth/OIDC.',
+        '3. Emite JWT de corta duración con audiencia delimitada; rota claves de firma vía Secrets Manager.',
+        '4. Asocia roles (visor, operador, ingeniero) a políticas de Access y restringe APIs administrativas.',
+        '5. Registra eventos de autenticación en el SIEM y alerta ante intentos de omitir MFA.'
+      ].join('\n')
+    }
+  },
+  {
+    keywords:['conversation','engine','workers ai','llm api'],
+    hint:{
+      en:'• Conversation engine → type "conversation integration" for LLM proxying.',
+      es:'• Motor conversacional → escribe "integración conversacional" para proxy de LLM.'
+    },
+    detail:{
+      en:[
+        'Conversation Engine Integration Checklist:',
+        '1. Deploy a Cloudflare Worker that validates tokens and forwards prompts to Workers AI or external LLMs.',
+        '2. Implement retry + exponential backoff and enforce per-tenant rate limiting.',
+        '3. Sign outbound requests with HMAC or OAuth where supported (OpenAI/Anthropic API keys kept in secrets).',
+        '4. Sanitize prompts/responses (PII scrubbing, allow-list commands) before logging.',
+        '5. Persist minimal conversation metadata to Durable Objects for session continuity.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación para la integración del motor conversacional:',
+        '1. Despliega un Worker de Cloudflare que valide tokens y reenvíe prompts a Workers AI o LLM externos.',
+        '2. Implementa reintentos con backoff exponencial y aplica limitación de tasa por inquilino.',
+        '3. Firma solicitudes salientes con HMAC u OAuth cuando esté disponible (claves de OpenAI/Anthropic en secretos).',
+        '4. Sanitiza prompts/respuestas (depuración de PII, lista permitida de comandos) antes de registrar.',
+        '5. Conserva metadatos mínimos en Durable Objects para continuidad de sesión.'
+      ].join('\n')
+    }
+  },
+  {
+    keywords:['memory','knowledge','vector','kv','storage'],
+    hint:{
+      en:'• Knowledge & memory → ask "knowledge integration" for storage patterns.',
+      es:'• Conocimiento y memoria → pide "integración de conocimiento" para patrones de almacenamiento.'
+    },
+    detail:{
+      en:[
+        'Knowledge & Memory Integration Checklist:',
+        '1. Create KV namespaces for quick lookups; enable encryption at rest and strict namespace binding.',
+        '2. Use Vectorize or Durable Objects for embeddings; store only hashed user IDs.',
+        '3. Version content sources and track provenance metadata for audit trails.',
+        '4. Implement TTL + deletion workflow to honor GDPR/CCPA data requests.',
+        '5. Replicate critical datasets or export to R2 for disaster recovery.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación de conocimiento y memoria:',
+        '1. Crea espacios de nombres KV para consultas rápidas; aplica cifrado en reposo y vinculación estricta.',
+        '2. Usa Vectorize o Durable Objects para embeddings; almacena solo IDs de usuario con hash.',
+        '3. Versiona las fuentes de contenido y rastrea metadatos de procedencia para auditoría.',
+        '4. Implementa TTL y flujos de eliminación para cumplir solicitudes GDPR/CCPA.',
+        '5. Replica conjuntos críticos o expórtalos a R2 para recuperación ante desastres.'
+      ].join('\n')
+    }
+  },
+  {
+    keywords:['secrets','config','wrangler','vault'],
+    hint:{
+      en:'• Secrets & config → request "secrets integration" for key management steps.',
+      es:'• Secretos y configuración → solicita "integración de secretos" para pasos de gestión de claves.'
+    },
+    detail:{
+      en:[
+        'Secrets & Configuration Integration Checklist:',
+        '1. Store API keys in Cloudflare Secrets Manager or `wrangler secret` with zero plaintext commits.',
+        '2. Sync secrets from GitHub Actions using OIDC short-lived tokens; deny long-lived PATs.',
+        '3. Enable secret rotation cadence (≤90 days) and automated revocation playbooks.',
+        '4. Restrict who can read secrets via Access policies + audit logging.',
+        '5. Validate configuration hashes in CI/CD before deployment.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación para secretos y configuración:',
+        '1. Guarda claves API en Cloudflare Secrets Manager o `wrangler secret` sin commits en texto plano.',
+        '2. Sincroniza secretos desde GitHub Actions usando tokens OIDC de corta duración; evita PATs de larga vida.',
+        '3. Establece rotación ≤90 días y playbooks de revocación automática.',
+        '4. Restringe la lectura de secretos con políticas de Access y registros de auditoría.',
+        '5. Valida hashes de configuración en CI/CD antes de desplegar.'
+      ].join('\n')
+    }
+  },
+  {
+    keywords:['observability','logging','monitoring','telemetry','siem'],
+    hint:{
+      en:'• Observability → use "observability integration" for logging + metrics wiring.',
+      es:'• Observabilidad → usa "integración de observabilidad" para registros y métricas.'
+    },
+    detail:{
+      en:[
+        'Observability Integration Checklist:',
+        '1. Stream Cloudflare Logs to R2, S3, or directly into SIEM (Splunk, Chronicle).',
+        '2. Tag log events with request IDs, tenant IDs, and Zero Trust user context.',
+        '3. Instrument Worker with Durable Object traces and send metrics to Grafana/Loki or Datadog.',
+        '4. Automate alerts for anomalies (latency, 4xx/5xx spikes, auth failures).',
+        '5. Run monthly chaos or incident response drills capturing MTTR/MTTD stats.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación de observabilidad:',
+        '1. Envía registros de Cloudflare a R2, S3 o directamente al SIEM (Splunk, Chronicle).',
+        '2. Etiqueta eventos con IDs de solicitud, IDs de inquilino y contexto de usuario Zero Trust.',
+        '3. Instrumenta el Worker con trazas de Durable Objects y envía métricas a Grafana/Loki o Datadog.',
+        '4. Automatiza alertas por anomalías (latencia, picos 4xx/5xx, fallos de autenticación).',
+        '5. Ejecuta simulacros mensuales capturando métricas MTTR/MTTD.'
+      ].join('\n')
+    }
+  },
+  {
+
+    keywords:['ci/cd','cicd','automation','pipeline','github actions','devsecops','release'],
+    hint:{
+      en:'• CI/CD automation → say "ci/cd integration" to harden GitHub Actions + secure releases.',
+      es:'• Automatización CI/CD → escribe "integración ci/cd" para asegurar GitHub Actions y despliegues.'
+    },
+    detail:{
+      en:[
+        'CI/CD Automation Integration Checklist:',
+        '1. Use GitHub Actions with OIDC federation to Cloudflare; avoid long-lived deploy keys.',
+        '2. Add DevSecOps stages: npm audit, SAST (CodeQL), dependency review, and IaC scans.',
+        '3. Require signed commits + branch protection with mandatory reviews for policy changes.',
+        '4. Store build artifacts in immutable buckets (R2) and sign releases with Sigstore.',
+        '5. Trigger post-deploy smoke tests + rollback automation when health checks fail.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación de automatización CI/CD:',
+        '1. Usa GitHub Actions con federación OIDC hacia Cloudflare; evita claves de despliegue de larga duración.',
+        '2. Añade etapas DevSecOps: npm audit, SAST (CodeQL), revisión de dependencias y escaneos IaC.',
+        '3. Exige commits firmados y protección de ramas con revisiones obligatorias para cambios de política.',
+        '4. Guarda artefactos de build en buckets inmutables (R2) y firma versiones con Sigstore.',
+        '5. Lanza pruebas post-despliegue y automatiza rollback cuando fallen los health checks.'
+      ].join('\n')
+    }
+  },
+  {
+    keywords:['data','analytics','insights','metrics','telemetry','ux','personalization'],
+    hint:{
+      en:'• Data science & insights → enter "data integration" for analytics and personalization loops.',
+      es:'• Ciencia de datos e insights → escribe "integración de datos" para analítica y personalización.'
+    },
+    detail:{
+      en:[
+        'Data Science & Insights Integration Checklist:',
+        '1. Capture Core Web Vitals + chatbot engagement to Analytics pipelines (Workers → R2 → BigQuery/Snowflake).',
+        '2. Anonymize user identifiers (hash + salt) before exporting behavioral datasets.',
+        '3. Train Tiny ML/LLM models on curated datasets; validate bias and drift quarterly.',
+        '4. Feed telemetry to adaptive UX rules (hint prompts, theme recommendations) via feature flags.',
+        '5. Share dashboards with product, security, and compliance stakeholders for continuous improvement.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación de ciencia de datos e insights:',
+        '1. Captura Core Web Vitals y engagement del chatbot en pipelines de analítica (Workers → R2 → BigQuery/Snowflake).',
+        '2. Anonimiza identificadores de usuario (hash + salt) antes de exportar conjuntos de comportamiento.',
+        '3. Entrena modelos Tiny ML/LLM con datos curados; valida sesgo y drift trimestralmente.',
+        '4. Retroalimenta la telemetría a reglas UX adaptativas (prompts, recomendaciones de tema) mediante feature flags.',
+        '5. Comparte paneles con producto, seguridad y cumplimiento para la mejora continua.'
+      ].join('\n')
+    }
+  },
+  {
+
+    keywords:['compliance','governance','pci','nist','audit'],
+    hint:{
+      en:'• Compliance & governance → try "compliance integration" for NIST/PCI mapping.',
+      es:'• Cumplimiento y gobernanza → intenta "integración de cumplimiento" para el mapeo NIST/PCI.'
+    },
+    detail:{
+      en:[
+        'Compliance & Governance Integration Checklist:',
+        '1. Map OPS CyberSec Core controls to NIST CSF functions (Identify→Recover).',
+        '2. Enforce PCI DSS Req.3-11: encryption, vulnerability scanning, change control, logging.',
+        '3. Maintain GDPR/CCPA records of processing and consent flows within chatbot prompts.',
+        '4. Version policies in Git, require pull-request reviews, and capture approvals.',
+        '5. Publish status dashboards (uptime, DPO contact, cookie notice) for transparency.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación de cumplimiento y gobernanza:',
+        '1. Mapea los controles OPS CyberSec Core a las funciones NIST CSF (Identify→Recover).',
+        '2. Aplica PCI DSS Req.3-11: cifrado, escaneo de vulnerabilidades, control de cambios y registros.',
+        '3. Mantén registros GDPR/CCPA del tratamiento y flujos de consentimiento en las interacciones.',
+        '4. Versiona políticas en Git, exige revisiones de pull request y guarda aprobaciones.',
+        '5. Publica paneles de estado (uptime, contacto DPO, aviso de cookies) para transparencia.'
+      ].join('\n')
+    }
+  }
+];
+
+const integrationHints = {
+  en:integrationDomains.map(domain=>domain.hint.en).join('\n'),
+  es:integrationDomains.map(domain=>domain.hint.es).join('\n')
+};
+
+const knowledgeBase = [
+  {
+    match: (msg)=>/^(hi|hello|hola|hey)\b/.test(msg),
+    reply:{
+      en:"Hello! I'm the OPS AI assistant. Ask about security layers, compliance, or how to use the chatbot.",
+      es:"¡Hola! Soy el asistente OPS AI. Pregunta sobre las capas de seguridad, el cumplimiento o cómo usar el chatbot."
+    }
+  },
+  {
+    match: msg=>msg.includes('layer')||msg.includes('capas'),
+    reply:{
+      en:"Our chatbot follows a 7-layer blueprint: UI, firewall, Thorium analysis, Tiny ML, Tiny LLM, orchestration, and backbone analytics. Ask for any layer to get deployment and security guidance!",
+      es:"Nuestro chatbot sigue un plano de 7 capas: interfaz, cortafuegos, análisis Thorium, Tiny ML, Tiny LLM, orquestación y analítica de la columna vertebral. ¡Pregunta por cualquier capa para recibir orientación de despliegue y seguridad!"
+    }
+  },
+  {
+    match: msg=>msg.includes('cloudflare')||msg.includes('worker')||msg.includes('edge'),
+    reply:{
+      en:[
+        'Here is how to connect the chatbot to Cloudflare:',
+        '1. Create a Cloudflare account and add your domain (or use a workers.dev subdomain).',
+        '2. Install Wrangler (`npm install -g wrangler`) and run `wrangler login` to authorize CLI access.',
+        '3. In this repo, add a Worker at /worker with an HTTP handler that proxies chat requests to your secure backend or KV store.',
+        '4. Define environment secrets with `wrangler secret put` for API keys, then run `wrangler deploy` to publish.',
+        '5. Update the chatbot fetch URL to point to the Worker endpoint (e.g., https://bot.yourdomain.com/chat).',
+        '6. Enable Cloudflare security layers: WAF (Firewall rules + Bot Fight), Zero Trust Access policies, TLS 1.3, and rate limiting per endpoint.',
+        '7. Monitor analytics + logs in Cloudflare dashboard; wire alerts to SIEM for PCI DSS visibility.'
+      ].join('\n'),
+      es:[
+        'Así conectas el chatbot con Cloudflare:',
+        '1. Crea una cuenta en Cloudflare y añade tu dominio (o usa un subdominio workers.dev).',
+        '2. Instala Wrangler (`npm install -g wrangler`) y ejecuta `wrangler login` para autorizar el CLI.',
+        '3. En este repositorio, añade un Worker en /worker con un handler HTTP que haga proxy de las solicitudes del chat a tu backend seguro o a un KV.',
+        '4. Define secretos de entorno con `wrangler secret put` para claves API y luego ejecuta `wrangler deploy` para publicar.',
+        '5. Actualiza la URL de fetch del chatbot para que apunte al endpoint del Worker (por ejemplo, https://bot.tudominio.com/chat).',
+        '6. Activa las capas de seguridad de Cloudflare: WAF (reglas de firewall + Bot Fight), Zero Trust Access, TLS 1.3 y limitación de tasas por endpoint.',
+        '7. Supervisa analíticas y registros en el panel de Cloudflare y enlaza alertas a tu SIEM para la visibilidad PCI DSS.'
+      ].join('\n')
+    }
+  },
+  {
+    match: msg=>msg.includes('integration')||msg.includes('integrations')||msg.includes('integraciones'),
+    reply:{
+      en:[
+        'Core integrations to launch the chatbot securely:',
+        '1. Delivery: Cloudflare Pages + CDN caching with strict security headers.',
+        '2. Identity: Cloudflare Zero Trust or OAuth/OIDC enforcing MFA and RBAC.',
+        '3. Conversation engine: Workers proxying to LLM APIs with rate limiting and sanitization.',
+        '4. Knowledge + memory: KV, Durable Objects, or Vectorize for encrypted storage.',
+        '5. Secrets & config: Secrets Manager or Wrangler secrets with automated rotation.',
+        '6. Observability: Logs streaming to SIEM, analytics dashboards, and alerting.',
+        '7. CI/CD automation: Federated GitHub Actions pipelines with DevSecOps controls.',
+        '8. Data science & insights: Analytics pipelines powering personalization and telemetry.',
+        '9. Compliance automation: GitHub Actions CI/CD with security scanning and audit trails.',
+        '',
+        'Dive deeper by requesting any domain:',
+        integrationHints.en
+      ].join('\n'),
+      es:[
+        'Integraciones clave para lanzar el chatbot de forma segura:',
+        '1. Entrega: Cloudflare Pages + caché CDN con cabeceras de seguridad estrictas.',
+        '2. Identidad: Cloudflare Zero Trust u OAuth/OIDC aplicando MFA y RBAC.',
+        '3. Motor conversacional: Workers como proxy hacia APIs LLM con limitación de tasa y sanitización.',
+        '4. Conocimiento + memoria: KV, Durable Objects o Vectorize para almacenamiento cifrado.',
+        '5. Secretos y configuración: Secrets Manager o secretos de Wrangler con rotación automatizada.',
+        '6. Observabilidad: Registros hacia el SIEM, paneles analíticos y alertas.',
+        '7. Automatización CI/CD: Pipelines federados de GitHub Actions con controles DevSecOps.',
+        '8. Ciencia de datos e insights: Pipelines analíticos que habilitan personalización y telemetría.',
+        '9. Automatización de cumplimiento: CI/CD en GitHub Actions con escaneos de seguridad y trazabilidad.',
+        '',
+        'Profundiza solicitando cualquier dominio:',
+        integrationHints.es
+      ].join('\n')
+    }
+  },
+  {
+    match: msg=>msg.includes('roadmap')||msg.includes('plan')||msg.includes('hoja de ruta'),
+    reply:{
+      en:[
+        'Suggested rollout roadmap (weeks 0-6):',
+        '• Week 0-1 → Stand up Cloudflare Pages + WAF policies, baseline observability.',
+        '• Week 2 → Wire CI/CD (GitHub Actions OIDC) with automated security scans.',
+        '• Week 3 → Deploy Workers conversation engine + secrets rotation.',
+        '• Week 4 → Activate knowledge bases (KV/Vectorize) and data pipelines.',
+        '• Week 5 → Run compliance reviews (PCI, GDPR) and finalize governance docs.',
+        '• Week 6 → Launch adaptive UX experiments, measure Core Web Vitals, iterate.'
+      ].join('\n'),
+      es:[
+        'Hoja de ruta sugerida (semanas 0-6):',
+        '• Semana 0-1 → Levanta Cloudflare Pages + políticas WAF y observabilidad base.',
+        '• Semana 2 → Conecta CI/CD (GitHub Actions OIDC) con escaneos de seguridad automatizados.',
+        '• Semana 3 → Despliega el motor conversacional en Workers y la rotación de secretos.',
+        '• Semana 4 → Activa bases de conocimiento (KV/Vectorize) y pipelines de datos.',
+        '• Semana 5 → Ejecuta revisiones de cumplimiento (PCI, GDPR) y finaliza la gobernanza.',
+        '• Semana 6 → Lanza experimentos UX adaptativos, mide Core Web Vitals y itera.'
+      ].join('\n')
+    }
+  },
+  {
+    match: msg=>msg.includes('architecture')||msg.includes('arquitectura')||msg.includes('diagram'),
+    reply:{
+      en:[
+        'Reference architecture overview:',
+        '• Frontend: Chat UI on Cloudflare Pages with strict CSP/HSTS.',
+        '• Edge Control: Cloudflare WAF + Zero Trust enforcing identity-aware routing.',
+        '• Workers Mesh: Proxy to LLM providers, Vectorize, and Durable Objects.',
+        '• Data Plane: R2 + KV + analytics warehouse feeding Tiny ML personalization.',
+        '• Automation: GitHub Actions OIDC → Cloudflare deployments with signed artifacts.',
+        '• Governance: Policy repos + audit dashboards aligned with OPS CyberSec Core.'
+      ].join('\n'),
+      es:[
+        'Resumen de arquitectura de referencia:',
+        '• Frontend: UI del chat en Cloudflare Pages con CSP/HSTS estrictos.',
+        '• Control perimetral: WAF de Cloudflare + Zero Trust con enrutamiento consciente de identidad.',
+        '• Malla de Workers: Proxy hacia proveedores LLM, Vectorize y Durable Objects.',
+        '• Plano de datos: R2 + KV + data warehouse analítico que alimenta personalización Tiny ML.',
+        '• Automatización: GitHub Actions OIDC → despliegues en Cloudflare con artefactos firmados.',
+        '• Gobernanza: Repos de políticas + dashboards de auditoría alineados con OPS CyberSec Core.'
+      ].join('\n')
+    }
+  },
+  {
+    match: msg=>msg.includes('api catalog')||msg.includes('api catalogue')||msg.includes('api endpoint')||msg.includes('api endpoints')||msg.includes('endpoints')||msg.includes('apis'),
+    reply:{
+      en:[
+        'Priority API endpoints and services:',
+        '- Cloudflare API: https://api.cloudflare.com/client/v4/ (Workers, KV, Accounts).',
+        '- Workers AI: POST https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/<model>.',
+        '- Cloudflare Vectorize: https://api.cloudflare.com/client/v4/accounts/{account_id}/vectorize/indexes.',
+        '- Durable Objects namespace binding via wrangler.toml (API is managed through Workers runtime).',
+        '- OpenAI Chat Completions: POST https://api.openai.com/v1/chat/completions.',
+        '- Anthropic Messages: POST https://api.anthropic.com/v1/messages.',
+        '- GitHub Actions OIDC: https://token.actions.githubusercontent.com/ for federated secrets.',
+        '- SIEM ingestion (e.g., Splunk HEC): POST https://<splunk-host>:8088/services/collector/event.',
+        'Secure each call with HTTPS, least-privilege tokens, and rotate credentials ≤90 days.'
+      ].join('\n'),
+      es:[
+        'Endpoints y servicios API prioritarios:',
+        '- API de Cloudflare: https://api.cloudflare.com/client/v4/ (Workers, KV, cuentas).',
+        '- Workers AI: POST https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/<model>.',
+        '- Cloudflare Vectorize: https://api.cloudflare.com/client/v4/accounts/{account_id}/vectorize/indexes.',
+        '- Asociación de Durable Objects mediante wrangler.toml (API gestionada en el runtime de Workers).',
+        '- OpenAI Chat Completions: POST https://api.openai.com/v1/chat/completions.',
+        '- Anthropic Messages: POST https://api.anthropic.com/v1/messages.',
+        '- GitHub Actions OIDC: https://token.actions.githubusercontent.com/ para secretos federados.',
+        '- Ingesta SIEM (ej. Splunk HEC): POST https://<splunk-host>:8088/services/collector/event.',
+        'Protege cada llamada con HTTPS, tokens de mínimo privilegio y rotación ≤90 días.'
+      ].join('\n')
+    }
+  },
+  {
+    match: msg=>msg.includes('ui layer')||msg.includes('capa ui'),
+    reply:{
+      en:'UI Layer → Host the static chatbot bundle on Cloudflare Pages or R2, enforce CSP headers, and serve via HTTPS/HTTP3 for Core Web Vitals compliance.',
+      es:'Capa UI → Hospeda el paquete estático del chatbot en Cloudflare Pages o R2, aplica cabeceras CSP y sirve vía HTTPS/HTTP3 para cumplir Core Web Vitals.'
+    }
+  },
+  {
+    match: msg=>msg.includes('firewall')||msg.includes('cortafuegos'),
+    reply:{
+      en:'Firewall Layer → Use Cloudflare WAF managed rules, custom OWASP protections, and rate limiting. Pair with Access policies to enforce MFA + identity-aware routing.',
+      es:'Capa Cortafuegos → Usa las reglas administradas del WAF de Cloudflare, protecciones OWASP personalizadas y limitación de tasa. Combínalo con Access para MFA y enrutamiento basado en identidad.'
+    }
+  },
+  {
+    match: msg=>msg.includes('thorium')||msg.includes('análisis'),
+    reply:{
+      en:'Thorium Analysis Layer → Run anomaly detection via Cloudflare Workers with durable objects collecting telemetry; forward findings to analytics for threat hunting.',
+      es:'Capa de Análisis Thorium → Ejecuta detección de anomalías con Cloudflare Workers y Durable Objects que recolectan telemetría; reenvía hallazgos a analítica para caza de amenazas.'
+    }
+  },
+  {
+    match: msg=>msg.includes('tiny ml')||msg.includes('tinyml'),
+    reply:{
+      en:'Tiny ML Layer → Deploy lightweight inference models with WebAssembly in Workers or on the client; use KV/Vectorize for feature storage with encryption at rest.',
+      es:'Capa Tiny ML → Despliega modelos ligeros con WebAssembly en Workers o en el cliente; usa KV/Vectorize para el almacenamiento de características con cifrado en reposo.'
+    }
+  },
+  {
+    match: msg=>msg.includes('tiny llm'),
+    reply:{
+      en:'Tiny LLM Layer → Serve distilled LLM checkpoints through Cloudflare AI Gateway or Workers AI, caching responses and enforcing per-tenant quotas via Durable Objects.',
+      es:'Capa Tiny LLM → Sirve modelos LLM destilados mediante Cloudflare AI Gateway o Workers AI, almacenando caché de respuestas y aplicando cuotas por inquilino con Durable Objects.'
+    }
+  },
+  {
+    match: msg=>msg.includes('orchestration')||msg.includes('orquestación'),
+    reply:{
+      en:'Orchestration Layer → Coordinate workflows with Cloudflare Queues and Workflows, triggering incident playbooks and CI/CD pipelines stored in GitHub Actions.',
+      es:'Capa de Orquestación → Coordina flujos con Cloudflare Queues y Workflows, activando playbooks de incidentes y pipelines CI/CD alojados en GitHub Actions.'
+    }
+  },
+  {
+    match: msg=>msg.includes('analytics')||msg.includes('analítica'),
+    reply:{
+      en:'Backbone Analytics Layer → Stream logs to Cloudflare Logs, route into SIEM/SOC, and visualize UX + threat metrics via Grafana or Looker Studio dashboards.',
+      es:'Capa de Analítica → Envía registros a Cloudflare Logs, intégralos en un SIEM/SOC y visualiza métricas de UX y amenazas en paneles de Grafana o Looker Studio.'
+    }
+  },
+  {
+    match: msg=>msg.includes('security')||msg.includes('seguridad')||msg.includes('pci'),
+    reply:{
+      en:"Security is enforced with Zero Trust, MFA, encryption, and logging aligned with NIST CSF + PCI DSS 4.0. Each layer authenticates requests before processing them.",
+      es:"La seguridad se refuerza con Zero Trust, MFA, cifrado y registros alineados con NIST CSF + PCI DSS 4.0. Cada capa autentica las solicitudes antes de procesarlas."
+    }
+  },
+  {
+    match: msg=>msg.includes('help')||msg.includes('ayuda')||msg.includes('what can you do')||msg.includes('qué puedes hacer'),
+    reply:{
+      en:"You can ask for platform guidance, compliance tips, or summaries of previous answers. For a fresh start, type 'reset'.",
+      es:"Puedes solicitar orientación de la plataforma, consejos de cumplimiento o resúmenes de respuestas previas. Para reiniciar, escribe 'reset'."
+    }
+  },
+  {
+    match: msg=>msg.includes('reset'),
+    action: ()=>{
+      log.innerHTML='';
+      conversation.length=0;
+      const greeting = pickTranslation(welcomeMessage);
+      addMsg(greeting,'bot');
+      recordAssistant(greeting);
+      return pickTranslation({
+        en:'Conversation reset. Ready when you are!',
+        es:'Conversación reiniciada. ¡Listo cuando quieras!'
+      });
+    }
+  },
+  {
+    match: msg=>msg.includes('thanks')||msg.includes('thank you')||msg.includes('gracias'),
+    reply:{
+      en:"Happy to help! Let me know if you need anything else.",
+      es:"Encantado de ayudar. Avísame si necesitas algo más."
+    }
+  }
+];
+
+const domainEntries = integrationDomains.map(domain=>({
+  match: msg=>domain.keywords.some(kw=>msg.includes(kw)),
+  reply: domain.detail
+}));
+
+domainEntries.reverse().forEach(entry=>knowledgeBase.unshift(entry));
+const welcomeMessage = {
+  en:"Welcome! Check the box to confirm you're human, then share your question about the OPS AI stack.",
+  es:"¡Bienvenido! Marca la casilla para confirmar que eres humano y cuéntame tu pregunta sobre la plataforma OPS AI."
+};
+
+function recordAssistant(text){
+  conversation.push({ role:'assistant', content:text });
+}
+
+const initialGreeting = pickTranslation(welcomeMessage);
+addMsg(initialGreeting,'bot');
+recordAssistant(initialGreeting);
+
+form.onsubmit = async e=>{
+  e.preventDefault();
+  if(!guard.checked) return;
+
+  const msg = input.value.trim();
+  if(!msg) return;
+  addMsg(msg,'user');
+  conversation.push({ role:'user', content:msg });
+  input.value=''; send.disabled=true;
+  addMsg('…','bot');
+
+  const typingBubble = log.lastChild;
+
+  const response = await new Promise(resolve=>{
+    setTimeout(()=>{
+      const lower = msg.toLowerCase();
+      for(const entry of knowledgeBase){
+        if(entry.match(lower)){
+          if(entry.action){
+            const result = entry.action();
+            recordAssistant(result);
+            resolve(result);
+            return;
+          }
+          const replyText = pickTranslation(entry.reply);
+          recordAssistant(replyText);
+          resolve(replyText);
+          return;
+        }
+      }
+
+      const recap = conversation
+        .filter(turn=>turn.role==='assistant')
+        .slice(-2)
+        .map(turn=>turn.content)
+        .join(' ');
+
+      const fallback = pickTranslation({
+        en:`Here is what I understood: "${msg}". ${recap ? `Previously we covered: ${recap}` : 'Ask about compliance, orchestration, or deployment for more detail.'}`,
+        es:`Esto es lo que entendí: "${msg}". ${recap ? `Anteriormente revisamos: ${recap}` : 'Pregunta sobre cumplimiento, orquestación o despliegue para más detalles.'}`
+      });
+      recordAssistant(fallback);
+      resolve(fallback);
+    }, Math.min(1500, 400 + msg.length * 25));
+  });
+
+  typingBubble.textContent = response;
+  if(conversation[conversation.length-1]?.role !== 'assistant'){
+    recordAssistant(response);
+  }
+  send.disabled=false;
+};
+</script>
+</body>
+</html>
