@@ -66,7 +66,6 @@ code and a body describing the failure.
   avoid cross-account transcript leakage on shared devices.
 - Consider rotating `sessionId` values server-side when sensitive workflows are
   completed to reduce replay exposure.
-
 ## Concierge Cosmetic Isolation
 
 - The interaction window is mounted as a dedicated `<section class="chattia-shell">`
@@ -81,7 +80,6 @@ code and a body describing the failure.
 - A `createConciergeShell` builder assembles header, log, status, and composer
   nodes, exposing update helpers so future visual refreshes can swap cosmetics
   or copy safely without touching persistence, networking, or security guards.
-
 ## Runtime Flow
 
 ```

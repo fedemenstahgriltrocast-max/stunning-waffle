@@ -136,7 +136,6 @@
       hover: colorWithAlpha(accent, 0.35, "rgba(37,99,235,0.35)"),
     };
     applyAccent(accent, currentTokens);
-
     return {
       updateAccent(nextAccent) {
         const nextTokens = {
@@ -224,9 +223,8 @@
     button.type = "submit";
     button.textContent = config.sendLabel;
     button.setAttribute("aria-label", config.sendLabel);
-
     form.append(input, button);
-
+    
     return {
       element: form,
       input,
@@ -345,6 +343,7 @@
         const dot = document.createElement("span");
         state.typingBubble.appendChild(dot);
       });
+
       log.element.appendChild(state.typingBubble);
       log.scrollToBottom();
 
@@ -399,6 +398,7 @@
       state.messages.forEach(({ role, text }) => {
         appendBubble(role, text, false);
       });
+      
       status.set("Ready");
     } else if (config.welcome) {
       appendBubble("assistant", config.welcome);

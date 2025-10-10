@@ -143,6 +143,189 @@ function pickTranslation(text){
   return getLang() === 'es' ? text.es : text.en;
 }
 
+const integrationDomains = [
+  {
+    keywords:['delivery','cdn','pages','hosting'],
+    hint:{
+      en:'• Delivery integration → say "delivery integration" for CDN hardening + static hosting.',
+      es:'• Integración de entrega → escribe "integración de entrega" para endurecer CDN y hosting estático.'
+    },
+    detail:{
+      en:[
+        'Delivery Integration Checklist:',
+        '1. Host UI on Cloudflare Pages or Netlify; enforce immutable asset versioning.',
+        '2. Enable HTTPS, HTTP/3, HSTS (max-age ≥ 31536000, includeSubDomains, preload).',
+        '3. Configure Content-Security-Policy, Referrer-Policy, Permissions-Policy headers in _headers file.',
+        '4. Cache HTML cautiously (Cache-Control: no-cache) and allow CDN for static assets with cache busting.',
+        '5. Wire Lighthouse CI or Pages speed insights for Core Web Vitals monitoring.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación para la integración de entrega:',
+        '1. Hospeda la UI en Cloudflare Pages o Netlify; aplica versionado inmutable de activos.',
+        '2. Activa HTTPS, HTTP/3 y HSTS (max-age ≥ 31536000, includeSubDomains, preload).',
+        '3. Configura cabeceras Content-Security-Policy, Referrer-Policy y Permissions-Policy en el archivo _headers.',
+        '4. Cachea el HTML con cautela (Cache-Control: no-cache) y deja que el CDN maneje los recursos estáticos con busting.',
+        '5. Conecta Lighthouse CI o las métricas de Pages para vigilar Core Web Vitals.'
+      ].join('\n')
+    }
+  },
+  {
+    keywords:['identity','zero trust','mfa','oauth','auth0','okta'],
+    hint:{
+      en:'• Identity integration → ask "identity integration" to configure Zero Trust + OAuth.',
+      es:'• Integración de identidad → solicita "integración de identidad" para configurar Zero Trust + OAuth.'
+    },
+    detail:{
+      en:[
+        'Identity Integration Checklist:',
+        '1. Enable Cloudflare Zero Trust Access for chat admin routes; require device posture + MFA.',
+        '2. Register the chatbot with your IdP (Okta/Auth0/Azure AD) using OAuth/OIDC confidential client.',
+        '3. Issue short-lived JWTs with audience scoping; rotate signing keys via Secrets Manager.',
+        '4. Map roles (viewer, operator, engineer) to Access policies and restrict admin APIs.',
+        '5. Log authentication events to SIEM and alert on MFA bypass attempts.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación para la integración de identidad:',
+        '1. Activa Cloudflare Zero Trust Access para rutas administrativas; exige postura de dispositivo y MFA.',
+        '2. Registra el chatbot en tu IdP (Okta/Auth0/Azure AD) usando un cliente confidencial OAuth/OIDC.',
+        '3. Emite JWT de corta duración con audiencia delimitada; rota claves de firma vía Secrets Manager.',
+        '4. Asocia roles (visor, operador, ingeniero) a políticas de Access y restringe APIs administrativas.',
+        '5. Registra eventos de autenticación en el SIEM y alerta ante intentos de omitir MFA.'
+      ].join('\n')
+    }
+  },
+  {
+    keywords:['conversation','engine','workers ai','llm api'],
+    hint:{
+      en:'• Conversation engine → type "conversation integration" for LLM proxying.',
+      es:'• Motor conversacional → escribe "integración conversacional" para proxy de LLM.'
+    },
+    detail:{
+      en:[
+        'Conversation Engine Integration Checklist:',
+        '1. Deploy a Cloudflare Worker that validates tokens and forwards prompts to Workers AI or external LLMs.',
+        '2. Implement retry + exponential backoff and enforce per-tenant rate limiting.',
+        '3. Sign outbound requests with HMAC or OAuth where supported (OpenAI/Anthropic API keys kept in secrets).',
+        '4. Sanitize prompts/responses (PII scrubbing, allow-list commands) before logging.',
+        '5. Persist minimal conversation metadata to Durable Objects for session continuity.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación para la integración del motor conversacional:',
+        '1. Despliega un Worker de Cloudflare que valide tokens y reenvíe prompts a Workers AI o LLM externos.',
+        '2. Implementa reintentos con backoff exponencial y aplica limitación de tasa por inquilino.',
+        '3. Firma solicitudes salientes con HMAC u OAuth cuando esté disponible (claves de OpenAI/Anthropic en secretos).',
+        '4. Sanitiza prompts/respuestas (depuración de PII, lista permitida de comandos) antes de registrar.',
+        '5. Conserva metadatos mínimos en Durable Objects para continuidad de sesión.'
+      ].join('\n')
+    }
+  },
+  {
+    keywords:['memory','knowledge','vector','kv','storage'],
+    hint:{
+      en:'• Knowledge & memory → ask "knowledge integration" for storage patterns.',
+      es:'• Conocimiento y memoria → pide "integración de conocimiento" para patrones de almacenamiento.'
+    },
+    detail:{
+      en:[
+        'Knowledge & Memory Integration Checklist:',
+        '1. Create KV namespaces for quick lookups; enable encryption at rest and strict namespace binding.',
+        '2. Use Vectorize or Durable Objects for embeddings; store only hashed user IDs.',
+        '3. Version content sources and track provenance metadata for audit trails.',
+        '4. Implement TTL + deletion workflow to honor GDPR/CCPA data requests.',
+        '5. Replicate critical datasets or export to R2 for disaster recovery.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación de conocimiento y memoria:',
+        '1. Crea espacios de nombres KV para consultas rápidas; aplica cifrado en reposo y vinculación estricta.',
+        '2. Usa Vectorize o Durable Objects para embeddings; almacena solo IDs de usuario con hash.',
+        '3. Versiona las fuentes de contenido y rastrea metadatos de procedencia para auditoría.',
+        '4. Implementa TTL y flujos de eliminación para cumplir solicitudes GDPR/CCPA.',
+        '5. Replica conjuntos críticos o expórtalos a R2 para recuperación ante desastres.'
+      ].join('\n')
+    }
+  },
+  {
+    keywords:['secrets','config','wrangler','vault'],
+    hint:{
+      en:'• Secrets & config → request "secrets integration" for key management steps.',
+      es:'• Secretos y configuración → solicita "integración de secretos" para pasos de gestión de claves.'
+    },
+    detail:{
+      en:[
+        'Secrets & Configuration Integration Checklist:',
+        '1. Store API keys in Cloudflare Secrets Manager or `wrangler secret` with zero plaintext commits.',
+        '2. Sync secrets from GitHub Actions using OIDC short-lived tokens; deny long-lived PATs.',
+        '3. Enable secret rotation cadence (≤90 days) and automated revocation playbooks.',
+        '4. Restrict who can read secrets via Access policies + audit logging.',
+        '5. Validate configuration hashes in CI/CD before deployment.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación para secretos y configuración:',
+        '1. Guarda claves API en Cloudflare Secrets Manager o `wrangler secret` sin commits en texto plano.',
+        '2. Sincroniza secretos desde GitHub Actions usando tokens OIDC de corta duración; evita PATs de larga vida.',
+        '3. Establece rotación ≤90 días y playbooks de revocación automática.',
+        '4. Restringe la lectura de secretos con políticas de Access y registros de auditoría.',
+        '5. Valida hashes de configuración en CI/CD antes de desplegar.'
+      ].join('\n')
+    }
+  },
+  {
+    keywords:['observability','logging','monitoring','telemetry','siem'],
+    hint:{
+      en:'• Observability → use "observability integration" for logging + metrics wiring.',
+      es:'• Observabilidad → usa "integración de observabilidad" para registros y métricas.'
+    },
+    detail:{
+      en:[
+        'Observability Integration Checklist:',
+        '1. Stream Cloudflare Logs to R2, S3, or directly into SIEM (Splunk, Chronicle).',
+        '2. Tag log events with request IDs, tenant IDs, and Zero Trust user context.',
+        '3. Instrument Worker with Durable Object traces and send metrics to Grafana/Loki or Datadog.',
+        '4. Automate alerts for anomalies (latency, 4xx/5xx spikes, auth failures).',
+        '5. Run monthly chaos or incident response drills capturing MTTR/MTTD stats.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación de observabilidad:',
+        '1. Envía registros de Cloudflare a R2, S3 o directamente al SIEM (Splunk, Chronicle).',
+        '2. Etiqueta eventos con IDs de solicitud, IDs de inquilino y contexto de usuario Zero Trust.',
+        '3. Instrumenta el Worker con trazas de Durable Objects y envía métricas a Grafana/Loki o Datadog.',
+        '4. Automatiza alertas por anomalías (latencia, picos 4xx/5xx, fallos de autenticación).',
+        '5. Ejecuta simulacros mensuales capturando métricas MTTR/MTTD.'
+      ].join('\n')
+    }
+  },
+  {
+    keywords:['compliance','governance','pci','nist','audit'],
+    hint:{
+      en:'• Compliance & governance → try "compliance integration" for NIST/PCI mapping.',
+      es:'• Cumplimiento y gobernanza → intenta "integración de cumplimiento" para el mapeo NIST/PCI.'
+    },
+    detail:{
+      en:[
+        'Compliance & Governance Integration Checklist:',
+        '1. Map OPS CyberSec Core controls to NIST CSF functions (Identify→Recover).',
+        '2. Enforce PCI DSS Req.3-11: encryption, vulnerability scanning, change control, logging.',
+        '3. Maintain GDPR/CCPA records of processing and consent flows within chatbot prompts.',
+        '4. Version policies in Git, require pull-request reviews, and capture approvals.',
+        '5. Publish status dashboards (uptime, DPO contact, cookie notice) for transparency.'
+      ].join('\n'),
+      es:[
+        'Lista de comprobación de cumplimiento y gobernanza:',
+        '1. Mapea los controles OPS CyberSec Core a las funciones NIST CSF (Identify→Recover).',
+        '2. Aplica PCI DSS Req.3-11: cifrado, escaneo de vulnerabilidades, control de cambios y registros.',
+        '3. Mantén registros GDPR/CCPA del tratamiento y flujos de consentimiento en las interacciones.',
+        '4. Versiona políticas en Git, exige revisiones de pull request y guarda aprobaciones.',
+        '5. Publica paneles de estado (uptime, contacto DPO, aviso de cookies) para transparencia.'
+      ].join('\n')
+    }
+  }
+];
+
+const integrationHints = {
+  en:integrationDomains.map(domain=>domain.hint.en).join('\n'),
+  es:integrationDomains.map(domain=>domain.hint.es).join('\n')
+};
+
 const knowledgeBase = [
   {
     match: (msg)=>/^(hi|hello|hola|hey)\b/.test(msg),
@@ -180,6 +363,66 @@ const knowledgeBase = [
         '5. Actualiza la URL de fetch del chatbot para que apunte al endpoint del Worker (por ejemplo, https://bot.tudominio.com/chat).',
         '6. Activa las capas de seguridad de Cloudflare: WAF (reglas de firewall + Bot Fight), Zero Trust Access, TLS 1.3 y limitación de tasas por endpoint.',
         '7. Supervisa analíticas y registros en el panel de Cloudflare y enlaza alertas a tu SIEM para la visibilidad PCI DSS.'
+      ].join('\n')
+    }
+  },
+  {
+    match: msg=>msg.includes('integration')||msg.includes('integrations')||msg.includes('integraciones'),
+    reply:{
+      en:[
+        'Core integrations to launch the chatbot securely:',
+        '1. Delivery: Cloudflare Pages + CDN caching with strict security headers.',
+        '2. Identity: Cloudflare Zero Trust or OAuth/OIDC enforcing MFA and RBAC.',
+        '3. Conversation engine: Workers proxying to LLM APIs with rate limiting and sanitization.',
+        '4. Knowledge + memory: KV, Durable Objects, or Vectorize for encrypted storage.',
+        '5. Secrets & config: Secrets Manager or Wrangler secrets with automated rotation.',
+        '6. Observability: Logs streaming to SIEM, analytics dashboards, and alerting.',
+        '7. Compliance automation: GitHub Actions CI/CD with security scanning and audit trails.',
+        '',
+        'Dive deeper by requesting any domain:',
+        integrationHints.en
+      ].join('\n'),
+      es:[
+        'Integraciones clave para lanzar el chatbot de forma segura:',
+        '1. Entrega: Cloudflare Pages + caché CDN con cabeceras de seguridad estrictas.',
+        '2. Identidad: Cloudflare Zero Trust u OAuth/OIDC aplicando MFA y RBAC.',
+        '3. Motor conversacional: Workers como proxy hacia APIs LLM con limitación de tasa y sanitización.',
+        '4. Conocimiento + memoria: KV, Durable Objects o Vectorize para almacenamiento cifrado.',
+        '5. Secretos y configuración: Secrets Manager o secretos de Wrangler con rotación automatizada.',
+        '6. Observabilidad: Registros hacia el SIEM, paneles analíticos y alertas.',
+        '7. Automatización de cumplimiento: CI/CD en GitHub Actions con escaneos de seguridad y trazabilidad.',
+        '',
+        'Profundiza solicitando cualquier dominio:',
+        integrationHints.es
+      ].join('\n')
+    }
+  },
+  {
+    match: msg=>msg.includes('api catalog')||msg.includes('api catalogue')||msg.includes('api endpoint')||msg.includes('api endpoints')||msg.includes('endpoints')||msg.includes('apis'),
+    reply:{
+      en:[
+        'Priority API endpoints and services:',
+        '- Cloudflare API: https://api.cloudflare.com/client/v4/ (Workers, KV, Accounts).',
+        '- Workers AI: POST https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/<model>.',
+        '- Cloudflare Vectorize: https://api.cloudflare.com/client/v4/accounts/{account_id}/vectorize/indexes.',
+        '- Durable Objects namespace binding via wrangler.toml (API is managed through Workers runtime).',
+        '- OpenAI Chat Completions: POST https://api.openai.com/v1/chat/completions.',
+        '- Anthropic Messages: POST https://api.anthropic.com/v1/messages.',
+        '- GitHub Actions OIDC: https://token.actions.githubusercontent.com/ for federated secrets.',
+        '- SIEM ingestion (e.g., Splunk HEC): POST https://<splunk-host>:8088/services/collector/event.',
+        'Secure each call with HTTPS, least-privilege tokens, and rotate credentials ≤90 days.'
+      ].join('\n'),
+      es:[
+        'Endpoints y servicios API prioritarios:',
+        '- API de Cloudflare: https://api.cloudflare.com/client/v4/ (Workers, KV, cuentas).',
+        '- Workers AI: POST https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/<model>.',
+        '- Cloudflare Vectorize: https://api.cloudflare.com/client/v4/accounts/{account_id}/vectorize/indexes.',
+        '- Asociación de Durable Objects mediante wrangler.toml (API gestionada en el runtime de Workers).',
+        '- OpenAI Chat Completions: POST https://api.openai.com/v1/chat/completions.',
+        '- Anthropic Messages: POST https://api.anthropic.com/v1/messages.',
+        '- GitHub Actions OIDC: https://token.actions.githubusercontent.com/ para secretos federados.',
+        '- Ingesta SIEM (ej. Splunk HEC): POST https://<splunk-host>:8088/services/collector/event.',
+        'Protege cada llamada con HTTPS, tokens de mínimo privilegio y rotación ≤90 días.'
       ].join('\n')
     }
   },
@@ -269,6 +512,12 @@ const knowledgeBase = [
   }
 ];
 
+const domainEntries = integrationDomains.map(domain=>({
+  match: msg=>domain.keywords.some(kw=>msg.includes(kw)),
+  reply: domain.detail
+}));
+
+domainEntries.reverse().forEach(entry=>knowledgeBase.unshift(entry));
 const welcomeMessage = {
   en:"Welcome! Check the box to confirm you're human, then share your question about the OPS AI stack.",
   es:"¡Bienvenido! Marca la casilla para confirmar que eres humano y cuéntame tu pregunta sobre la plataforma OPS AI."
