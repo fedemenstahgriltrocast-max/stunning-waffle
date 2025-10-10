@@ -184,6 +184,31 @@ const knowledgeBase = [
     }
   },
   {
+    match: msg=>msg.includes('integration')||msg.includes('integrations')||msg.includes('api')||msg.includes('integraciones')||msg.includes('apis'),
+    reply:{
+      en:[
+        'Core integrations to launch the chatbot securely:',
+        '1. Delivery: Cloudflare Pages (static UI) + CDN caching with strict CSP/HSTS headers.',
+        '2. Identity: Cloudflare Zero Trust Access or OAuth/OIDC IdP (Okta, Auth0) enforcing MFA + role policies.',
+        '3. Conversation engine: Cloudflare Workers/Queues proxying to your LLM API (Workers AI, OpenAI, Anthropic) with rate limiting.',
+        '4. Knowledge + memory: Cloudflare KV, Durable Objects, or Vectorize for context storage and encrypted embeddings.',
+        '5. Secrets & config: Cloudflare Secrets Manager / Wrangler secrets synced from GitHub Actions pipelines.',
+        '6. Observability: Cloudflare Logs + SIEM (Splunk, Chronicle) and analytics dashboards for UX + threat metrics.',
+        '7. Compliance automation: GitHub Actions CI/CD with security scanning, IaC policy checks, and incident webhooks (PagerDuty, Slack).'
+      ].join('\n'),
+      es:[
+        'Integraciones clave para lanzar el chatbot de forma segura:',
+        '1. Entrega: Cloudflare Pages (UI estática) + caché CDN con cabeceras CSP/HSTS estrictas.',
+        '2. Identidad: Cloudflare Zero Trust Access u OIDC/OAuth (Okta, Auth0) aplicando MFA y políticas por rol.',
+        '3. Motor conversacional: Cloudflare Workers/Queues como proxy hacia tu API LLM (Workers AI, OpenAI, Anthropic) con limitación de tasa.',
+        '4. Conocimiento + memoria: Cloudflare KV, Durable Objects o Vectorize para almacenar contexto y embeddings cifrados.',
+        '5. Secretos y configuración: Cloudflare Secrets Manager / secretos de Wrangler sincronizados desde pipelines de GitHub Actions.',
+        '6. Observabilidad: Cloudflare Logs + SIEM (Splunk, Chronicle) y paneles analíticos para métricas de UX y amenazas.',
+        '7. Automatización de cumplimiento: GitHub Actions CI/CD con escaneo de seguridad, políticas IaC y webhooks de incidentes (PagerDuty, Slack).'
+      ].join('\n')
+    }
+  },
+  {
     match: msg=>msg.includes('ui layer')||msg.includes('capa ui'),
     reply:{
       en:'UI Layer → Host the static chatbot bundle on Cloudflare Pages or R2, enforce CSP headers, and serve via HTTPS/HTTP3 for Core Web Vitals compliance.',
